@@ -80,28 +80,33 @@ int main()
     int distances[10];
     int previous[10];
 
-    dijkstra.findShortestPaths(graph, 0, distances, previous);
 
-    cout << endl;
-    cout << "Dijkstra Shortest Distances:" << endl;
+    bool dijkstraSuccess = dijkstra.findShortestPaths(graph, 0, distances, previous);
 
-    for (int i = 0; i < graph.getVertexCount(); i++)
+    if (dijkstraSuccess)
     {
-        const Vertex* vertex = graph.getVertexAt(i);
-
-        cout << "Vertex " << vertex->id << ": ";
-
-        if (distances[i] == 1000000000)
-        {
-            cout << "Unreachable";
-        }
-        else
-        {
-            cout << distances[i];
-        }
-
         cout << endl;
+        cout << "Dijkstra Shortest Distances:" << endl;
+
+        for (int i = 0; i < graph.getVertexCount(); i++)
+        {
+            const Vertex* vertex = graph.getVertexAt(i);
+
+            cout << "Vertex " << vertex->id << ": ";
+
+            if (distances[i] == 1000000000)
+            {
+                cout << "Unreachable";
+            }
+            else
+            {
+                cout << distances[i];
+            }
+
+            cout << endl;
+        }
     }
+
 
     Graph testGraph(10, 20);
 

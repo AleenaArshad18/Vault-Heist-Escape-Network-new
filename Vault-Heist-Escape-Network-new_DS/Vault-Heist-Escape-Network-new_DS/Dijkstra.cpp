@@ -1,43 +1,58 @@
+
 #include "Dijkstra.h"
 #include <iostream>
 
 using namespace std;
 
-void Dijkstra::findShortestPaths(const Graph& graph, int startVertexID, int distances[], int previous[]) const
+bool Dijkstra::findShortestPaths(const Graph& graph, int startVertexID, int distances[], int previous[]) const
 {
+    const int INF = 1000000000;
+
     int vertexCount = graph.getVertexCount();
+
+    // Initialize output arrays first.
+
+    for (int i = 0; i < vertexCount; i++)
+    {
+        distances[i] = INF;
+        previous[i] = -1;
+    }
+
+    // Find the starting vertex.
 
     int startIndex = graph.getVertexIndexByID(startVertexID);
 
     if (startIndex == -1)
     {
         cout << "Starting vertex not found!" << endl;
-        return;
+        return false;
     }
+
+    // Dijkstra does not support negative edge weights.
 
     if (graph.hasNegativeWeight())
     {
         cout << "Dijkstra cannot work with negative weights!" << endl;
-        return;
+        return false;
     }
 
     bool* visited = new bool[vertexCount];
 
-    const int INF = 1000000000;
-
     for (int i = 0; i < vertexCount; i++)
     {
-        distances[i] = INF;
-        previous[i] = -1;
         visited[i] = false;
     }
 
     distances[startIndex] = 0;
 
+    // Process vertices one by one.
+
     for (int count = 0; count < vertexCount; count++)
     {
         int minimumDistance = INF;
         int currentIndex = -1;
+
+        // Find the unvisited vertex with the smallest distance.
 
         for (int i = 0; i < vertexCount; i++)
         {
@@ -48,12 +63,16 @@ void Dijkstra::findShortestPaths(const Graph& graph, int startVertexID, int dist
             }
         }
 
+        // Stop if remaining vertices are unreachable.
+
         if (currentIndex == -1)
         {
             break;
         }
 
         visited[currentIndex] = true;
+
+        // Explore adjacent vertices.
 
         const EdgeNode* current = graph.getAdjacencyHead(currentIndex);
 
@@ -63,12 +82,17 @@ void Dijkstra::findShortestPaths(const Graph& graph, int startVertexID, int dist
 
             if (!visited[neighbourIndex])
             {
-                int newDistance = distances[currentIndex] + current->weight;
+                // Prevent integer overflow.
 
-                if (newDistance < distances[neighbourIndex])
+                if (current->weight <= INF - distances[currentIndex])
                 {
-                    distances[neighbourIndex] = newDistance;
-                    previous[neighbourIndex] = currentIndex;
+                    int newDistance = distances[currentIndex] + current->weight;
+
+                    if (newDistance < distances[neighbourIndex])
+                    {
+                        distances[neighbourIndex] = newDistance;
+                        previous[neighbourIndex] = currentIndex;
+                    }
                 }
             }
 
@@ -77,4 +101,6 @@ void Dijkstra::findShortestPaths(const Graph& graph, int startVertexID, int dist
     }
 
     delete[] visited;
+
+    return true;
 }
