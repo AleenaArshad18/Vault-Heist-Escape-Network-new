@@ -1,4 +1,6 @@
+
 #include "CriticalPoints.h"
+#include <iostream>
 
 using namespace std;
 
@@ -35,8 +37,6 @@ void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID,
 
             DFS(graph, neighbour, current->edgeID, timer, visited,
                 discovery, low, bridges, bridgeCount, articulationFlags);
-
-            // Update the low value.
 
             if (low[neighbour] < low[currentIndex])
             {
@@ -93,9 +93,23 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
     int articulationPoints[], int& articulationCount) const
 {
     int vertexCount = graph.getVertexCount();
+    int edgeCount = graph.getEdgeCount();
 
     bridgeCount = 0;
     articulationCount = 0;
+
+    // Critical points require an entirely undirected graph.
+
+    for (int i = 0; i < edgeCount; i++)
+    {
+        const Edge* edge = graph.getEdgeAt(i);
+
+        if (edge->directed)
+        {
+            cout << "Bridges and articulation points require an undirected graph!" << endl;
+            return false;
+        }
+    }
 
     bool* visited = new bool[vertexCount];
     int* discovery = new int[vertexCount];

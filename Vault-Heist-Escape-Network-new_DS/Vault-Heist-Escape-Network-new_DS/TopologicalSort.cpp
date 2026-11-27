@@ -1,17 +1,37 @@
+
 #include "TopologicalSort.h"
+#include <iostream>
 
 using namespace std;
 
 bool TopologicalSort::kahnSort(const Graph& graph, int result[], int& resultCount) const
 {
     int vertexCount = graph.getVertexCount();
+    int edgeCount = graph.getEdgeCount();
 
     resultCount = 0;
+
+    // An empty graph cannot be sorted.
 
     if (vertexCount == 0)
     {
         return false;
     }
+
+    // Topological Sort requires every edge to be directed.
+
+    for (int i = 0; i < edgeCount; i++)
+    {
+        const Edge* edge = graph.getEdgeAt(i);
+
+        if (!edge->directed)
+        {
+            cout << "Topological Sort requires a directed graph!" << endl;
+            return false;
+        }
+    }
+
+    // Create arrays for indegree and queue.
 
     int* indegree = new int[vertexCount];
     int* queue = new int[vertexCount];
@@ -81,5 +101,13 @@ bool TopologicalSort::kahnSort(const Graph& graph, int result[], int& resultCoun
     delete[] indegree;
     delete[] queue;
 
-    return resultCount == vertexCount;
+    // If not all vertices were processed, the graph has a cycle.
+
+    if (resultCount != vertexCount)
+    {
+        cout << "Graph contains a cycle. Topological sorting is not possible." << endl;
+        return false;
+    }
+
+    return true;
 }

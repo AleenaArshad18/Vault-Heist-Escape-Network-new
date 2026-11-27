@@ -136,7 +136,7 @@ int main()
 
             cout << "Vertex " << vertex->id << ": ";
 
-            if (bfDistances[i] == 1000000000)
+            if (bfDistances[i] == 999999)
             {
                 cout << "Unreachable";
             }
@@ -405,6 +405,11 @@ int main()
     {
         cout << "Invalid graph or source/destination." << endl;
     }
+
+    bipartiteGraph.addEdge(0, 1, 1, 10, false);
+    bipartiteGraph.addEdge(0, 3, 1, 10, false);
+    bipartiteGraph.addEdge(2, 1, 1, 10, false);
+    bipartiteGraph.addEdge(2, 3, 1, 10, false);
 
     return 0;
 }
