@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Vault-Heist-Escape-Network-new_DS/Vault-Heist-Escape-Network-new_DS.vcxproj" />
+  <Project Path="Vault-Heist-Escape-Network-new_DS/Vault-Heist-Escape-Network-new_DS.vcxproj" Id="ec146117-23eb-4466-b3cc-9c689022f3ec" />
 </Solution>
