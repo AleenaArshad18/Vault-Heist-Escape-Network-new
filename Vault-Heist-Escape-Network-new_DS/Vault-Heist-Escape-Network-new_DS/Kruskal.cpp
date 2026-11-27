@@ -1,5 +1,7 @@
+
 #include "Kruskal.h"
 #include "UnionFind.h"
+#include <iostream>
 
 using namespace std;
 
@@ -11,15 +13,35 @@ bool Kruskal::findMST(const Graph& graph, Edge mstEdges[], int& mstCount, int& t
     mstCount = 0;
     totalWeight = 0;
 
+    // An empty graph cannot have an MST.
+
     if (vertexCount == 0)
     {
+        cout << "Graph is empty!" << endl;
         return false;
     }
+
+    // Kruskal requires an undirected graph.
+
+    for (int i = 0; i < edgeCount; i++)
+    {
+        const Edge* edge = graph.getEdgeAt(i);
+
+        if (edge->directed)
+        {
+            cout << "Kruskal requires an undirected graph!" << endl;
+            return false;
+        }
+    }
+
+    // A graph with one vertex already has an MST.
 
     if (vertexCount == 1)
     {
         return true;
     }
+
+    // Create a temporary copy of all edges.
 
     Edge* sortedEdges = new Edge[edgeCount];
 
@@ -47,6 +69,8 @@ bool Kruskal::findMST(const Graph& graph, Edge mstEdges[], int& mstCount, int& t
         sortedEdges[minimumIndex] = temp;
     }
 
+    // Create UnionFind to track connected groups.
+
     UnionFind groups(vertexCount);
 
     // Process edges from smallest weight to largest.
@@ -70,6 +94,8 @@ bool Kruskal::findMST(const Graph& graph, Edge mstEdges[], int& mstCount, int& t
             mstCount++;
             totalWeight += sortedEdges[i].weight;
 
+            // An MST contains exactly V-1 edges.
+
             if (mstCount == vertexCount - 1)
             {
                 break;
@@ -79,5 +105,13 @@ bool Kruskal::findMST(const Graph& graph, Edge mstEdges[], int& mstCount, int& t
 
     delete[] sortedEdges;
 
-    return mstCount == vertexCount - 1;
+    // If we could not select V-1 edges, the graph is disconnected.
+
+    if (mstCount != vertexCount - 1)
+    {
+        cout << "Minimum Spanning Tree does not exist. Graph is disconnected!" << endl;
+        return false;
+    }
+
+    return true;
 }

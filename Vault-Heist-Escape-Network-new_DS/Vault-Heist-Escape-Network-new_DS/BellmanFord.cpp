@@ -1,3 +1,4 @@
+
 #include "BellmanFord.h"
 #include <iostream>
 
@@ -5,8 +6,20 @@ using namespace std;
 
 bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int distances[], int previous[]) const
 {
+    const int INF = 999999;
+
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();
+
+    // Initialize output arrays.
+
+    for (int i = 0; i < vertexCount; i++)
+    {
+        distances[i] = INF;
+        previous[i] = -1;
+    }
+
+    // Validate starting vertex.
 
     int startIndex = graph.getVertexIndexByID(startVertexID);
 
@@ -16,17 +29,9 @@ bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int d
         return false;
     }
 
-    const int INF = 1000000000;
-
-    for (int i = 0; i < vertexCount; i++)
-    {
-        distances[i] = INF;
-        previous[i] = -1;
-    }
-
     distances[startIndex] = 0;
 
-    // Relax all edges V-1 times
+    // Relax all edges V-1 times.
 
     for (int round = 1; round < vertexCount; round++)
     {
@@ -39,34 +44,36 @@ bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int d
             int fromIndex = graph.getVertexIndexByID(edge->fromID);
             int toIndex = graph.getVertexIndexByID(edge->toID);
 
-            // Relax the forward direction
+            // Relax forward direction.
 
             if (distances[fromIndex] != INF)
             {
-                int newDistance = distances[fromIndex] + edge->weight;
+                long long newDistance = (long long)distances[fromIndex] + edge->weight;
 
-                if (newDistance < distances[toIndex])
+                if (newDistance < distances[toIndex] && newDistance > -INF)
                 {
-                    distances[toIndex] = newDistance;
+                    distances[toIndex] = (int)newDistance;
                     previous[toIndex] = fromIndex;
                     updated = true;
                 }
             }
 
-            // Relax reverse direction for undirected edges
+            // Relax reverse direction for undirected edges.
 
             if (!edge->directed && distances[toIndex] != INF)
             {
-                int newDistance = distances[toIndex] + edge->weight;
+                long long newDistance = (long long)distances[toIndex] + edge->weight;
 
-                if (newDistance < distances[fromIndex])
+                if (newDistance < distances[fromIndex] && newDistance > -INF)
                 {
-                    distances[fromIndex] = newDistance;
+                    distances[fromIndex] = (int)newDistance;
                     previous[fromIndex] = toIndex;
                     updated = true;
                 }
             }
         }
+
+        // Stop early if no distances changed.
 
         if (!updated)
         {
@@ -74,7 +81,7 @@ bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int d
         }
     }
 
-    // Check for a reachable negative-weight cycle
+    // Check for reachable negative-weight cycles.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -85,7 +92,9 @@ bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int d
 
         if (distances[fromIndex] != INF)
         {
-            if (distances[fromIndex] + edge->weight < distances[toIndex])
+            long long newDistance = (long long)distances[fromIndex] + edge->weight;
+
+            if (newDistance < distances[toIndex])
             {
                 cout << "Negative-weight cycle detected!" << endl;
                 return false;
@@ -94,7 +103,9 @@ bool BellmanFord::findShortestPaths(const Graph& graph, int startVertexID, int d
 
         if (!edge->directed && distances[toIndex] != INF)
         {
-            if (distances[toIndex] + edge->weight < distances[fromIndex])
+            long long newDistance = (long long)distances[toIndex] + edge->weight;
+
+            if (newDistance < distances[fromIndex])
             {
                 cout << "Negative-weight cycle detected!" << endl;
                 return false;
