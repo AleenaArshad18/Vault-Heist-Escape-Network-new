@@ -1,3 +1,4 @@
+
 #include "Prim.h"
 
 using namespace std;
@@ -5,19 +6,31 @@ using namespace std;
 bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& mstCount, int& totalWeight) const
 {
     int vertexCount = graph.getVertexCount();
+    int edgeCount = graph.getEdgeCount();
 
     mstCount = 0;
     totalWeight = 0;
+
+    // An empty graph cannot have an MST.
 
     if (vertexCount == 0)
     {
         return false;
     }
 
-    if (vertexCount == 1)
+    // Prim requires an undirected graph.
+
+    for (int i = 0; i < edgeCount; i++)
     {
-        return graph.getVertexIndexByID(startVertexID) != -1;
+        const Edge* edge = graph.getEdgeAt(i);
+
+        if (edge->directed)
+        {
+            return false;
+        }
     }
+
+    // Validate the starting vertex.
 
     int startIndex = graph.getVertexIndexByID(startVertexID);
 
@@ -25,6 +38,15 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
     {
         return false;
     }
+
+    // A graph with one vertex already has an MST.
+
+    if (vertexCount == 1)
+    {
+        return true;
+    }
+
+    // Create and initialize visited array.
 
     bool* visited = new bool[vertexCount];
 
@@ -35,13 +57,22 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
         visited[i] = false;
     }
 
+    // Start from the selected vertex.
+
     visited[startIndex] = true;
+
+    // Continue until V-1 edges have been selected.
 
     while (mstCount < vertexCount - 1)
     {
         int minimumWeight = INF;
+
         int selectedFrom = -1;
         int selectedTo = -1;
+        int selectedEdgeID = -1;
+
+        // Find the minimum-weight edge connecting
+        // a visited vertex to an unvisited vertex.
 
         for (int i = 0; i < vertexCount; i++)
         {
@@ -58,6 +89,7 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
                         minimumWeight = current->weight;
                         selectedFrom = i;
                         selectedTo = neighbour;
+                        selectedEdgeID = current->edgeID;
                     }
 
                     current = current->next;
@@ -65,23 +97,45 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
             }
         }
 
+        // No connecting edge means the graph is disconnected.
+
         if (selectedTo == -1)
         {
             delete[] visited;
             return false;
         }
 
-        visited[selectedTo] = true;
+        // Find the original edge so all its fields are copied.
 
-        const Vertex* fromVertex = graph.getVertexAt(selectedFrom);
-        const Vertex* toVertex = graph.getVertexAt(selectedTo);
+        const Edge* selectedEdge = nullptr;
 
-        mstEdges[mstCount].fromID = fromVertex->id;
-        mstEdges[mstCount].toID = toVertex->id;
-        mstEdges[mstCount].weight = minimumWeight;
+        for (int i = 0; i < edgeCount; i++)
+        {
+            const Edge* edge = graph.getEdgeAt(i);
+
+            if (edge->id == selectedEdgeID)
+            {
+                selectedEdge = edge;
+                break;
+            }
+        }
+
+        if (selectedEdge == nullptr)
+        {
+            delete[] visited;
+            return false;
+        }
+
+        // Add the selected edge to the MST.
+
+        mstEdges[mstCount] = *selectedEdge;
 
         mstCount++;
         totalWeight += minimumWeight;
+
+        // Mark the newly connected vertex as visited.
+
+        visited[selectedTo] = true;
     }
 
     delete[] visited;
