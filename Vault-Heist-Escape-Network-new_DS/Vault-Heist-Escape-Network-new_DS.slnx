@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Vault-Heist-Escape-Network-new_DS/Vault-Heist-Escape-Network-new_DS.vcxproj" />
+</Solution>
