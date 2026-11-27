@@ -268,57 +268,63 @@ void Graph::display() const
     }
 }
 
+
 void Graph::displayAdjacencyMatrix() const
 {
+    cout << endl << "Adjacency Matrix:" << endl;
+
     int** matrix = new int* [vertexCount];
+    bool** edgeExists = new bool* [vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
     {
         matrix[i] = new int[vertexCount];
+        edgeExists[i] = new bool[vertexCount];
 
         for (int j = 0; j < vertexCount; j++)
         {
-            matrix[i][j] = -1;
+            matrix[i][j] = 0;
+            edgeExists[i][j] = false;
         }
     }
-
-    for (int i = 0; i < edgeCount; i++)
-    {
-        int fromIndex = findVertexIndex(edges[i].fromID);
-        int toIndex = findVertexIndex(edges[i].toID);
-
-        matrix[fromIndex][toIndex] = edges[i].weight;
-
-        if (!edges[i].directed)
-        {
-            matrix[toIndex][fromIndex] = edges[i].weight;
-        }
-    }
-
-    cout << "\nAdjacency Matrix\n\n";
-
-    cout << "    ";
 
     for (int i = 0; i < vertexCount; i++)
     {
-        cout << i << "   ";
+        const EdgeNode* current = vertices[i].head;
+
+        while (current != nullptr)
+        {
+            int j = current->destinationIndex;
+
+            matrix[i][j] = current->weight;
+            edgeExists[i][j] = true;
+
+            current = current->next;
+        }
+    }
+
+    cout << "     ";
+
+    for (int i = 0; i < vertexCount; i++)
+    {
+        cout << vertices[i].id << "    ";
     }
 
     cout << endl;
 
     for (int i = 0; i < vertexCount; i++)
     {
-        cout << i << "   ";
+        cout << vertices[i].id << "    ";
 
         for (int j = 0; j < vertexCount; j++)
         {
-            if (matrix[i][j] == -1)
+            if (edgeExists[i][j])
             {
-                cout << "-   ";
+                cout << matrix[i][j] << "    ";
             }
             else
             {
-                cout << matrix[i][j] << "   ";
+                cout << "-" << "    ";
             }
         }
 
@@ -328,10 +334,14 @@ void Graph::displayAdjacencyMatrix() const
     for (int i = 0; i < vertexCount; i++)
     {
         delete[] matrix[i];
+        delete[] edgeExists[i];
     }
 
     delete[] matrix;
+    delete[] edgeExists;
 }
+
+
 
 int Graph::getDegree(int vertexID) const
 {
@@ -355,20 +365,20 @@ int Graph::getDegree(int vertexID) const
     return degree;
 }
 
-void Graph::getNeighbours(int vertexID, int neighbours[], int& count) const
+void Graph::getNeighbours(int vertexID, int neighbours[], int& count, int maxSize) const
 {
     count = 0;
 
     int index = findVertexIndex(vertexID);
 
-    if (index == -1)
+    if (index == -1 || neighbours == nullptr || maxSize <= 0)
     {
         return;
     }
 
     const EdgeNode* current = vertices[index].head;
 
-    while (current != nullptr)
+    while (current != nullptr && count < maxSize)
     {
         neighbours[count] = vertices[current->destinationIndex].id;
         count++;
@@ -379,30 +389,28 @@ void Graph::getNeighbours(int vertexID, int neighbours[], int& count) const
 
 void Graph::displayNeighbours(int vertexID) const
 {
-    int neighbours[100];
+    int* neighbours = new int[vertexCount];
     int count = 0;
 
-    getNeighbours(vertexID, neighbours, count);
+    getNeighbours(vertexID, neighbours, count, vertexCount);
 
     if (findVertexIndex(vertexID) == -1)
     {
-        cout << "Vertex not found!" << endl;
-        return;
+        cout << "Vertex not found." << endl;
     }
-
-    cout << "Neighbours of " << vertexID << ": ";
-
-    if (count == 0)
+    else
     {
-        cout << "No neighbours";
+        cout << "Neighbours of vertex " << vertexID << ": ";
+
+        for (int i = 0; i < count; i++)
+        {
+            cout << neighbours[i] << " ";
+        }
+
+        cout << endl;
     }
 
-    for (int i = 0; i < count; i++)
-    {
-        cout << neighbours[i] << " ";
-    }
-
-    cout << endl;
+    delete[] neighbours;
 }
 
 void Graph::BFS(int startVertexID) const
@@ -470,89 +478,94 @@ void Graph::DFS(int startVertexID) const
 
     if (startIndex == -1)
     {
-        cout << "Starting vertex not found!" << endl;
+        cout << "Starting vertex not found." << endl;
         return;
     }
 
     bool* visited = new bool[vertexCount];
+    int* stack = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
     {
         visited[i] = false;
     }
-
-    int* stack = new int[vertexCount];
 
     int top = -1;
 
     stack[++top] = startIndex;
+    visited[startIndex] = true;
 
     cout << "DFS Traversal: ";
 
-    while (top != -1)
+    while (top >= 0)
     {
         int currentIndex = stack[top--];
 
-        if (!visited[currentIndex])
+        cout << vertices[currentIndex].id << " ";
+
+        int maxNeighbours = 2 * edgeCount + 1;
+        int* neighbours = new int[maxNeighbours];
+        int count = 0;
+
+        const EdgeNode* current = vertices[currentIndex].head;
+
+        while (current != nullptr && count < maxNeighbours)
         {
-            visited[currentIndex] = true;
+            neighbours[count] = current->destinationIndex;
+            count++;
+            current = current->next;
+        }
 
-            cout << vertices[currentIndex].id << " ";
+        for (int i = count - 1; i >= 0; i--)
+        {
+            int neighbourIndex = neighbours[i];
 
-            const EdgeNode* current = vertices[currentIndex].head;
-
-            int neighbours[100];
-            int count = 0;
-
-            while (current != nullptr)
+            if (!visited[neighbourIndex])
             {
-                neighbours[count] = current->destinationIndex;
-                count++;
-
-                current = current->next;
-            }
-
-            for (int i = count - 1; i >= 0; i--)
-            {
-                if (!visited[neighbours[i]])
-                {
-                    stack[++top] = neighbours[i];
-                }
+                visited[neighbourIndex] = true;
+                stack[++top] = neighbourIndex;
             }
         }
+
+        delete[] neighbours;
     }
 
     cout << endl;
 
-    delete[] visited;
     delete[] stack;
+    delete[] visited;
 }
 
 int Graph::countConnectedComponents() const
 {
+    if (!hasOnlyUndirectedEdges())
+    {
+        cout << "Connected components require an undirected graph." << endl;
+        return -1;
+    }
+
     bool* visited = new bool[vertexCount];
+    int* stack = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
     {
         visited[i] = false;
     }
 
-    int components = 0;
-
-    int* stack = new int[vertexCount];
+    int componentCount = 0;
 
     for (int i = 0; i < vertexCount; i++)
     {
         if (!visited[i])
         {
-            components++;
+            componentCount++;
 
             int top = -1;
 
             stack[++top] = i;
             visited[i] = true;
 
-            while (top != -1)
+            while (top >= 0)
             {
                 int currentIndex = stack[top--];
 
@@ -574,26 +587,29 @@ int Graph::countConnectedComponents() const
         }
     }
 
-    delete[] visited;
     delete[] stack;
+    delete[] visited;
 
-    return components;
+    return componentCount;
 }
 
 void Graph::displayConnectedComponents() const
 {
+    if (!hasOnlyUndirectedEdges())
+    {
+        cout << "Connected components require an undirected graph." << endl;
+        return;
+    }
+
     bool* visited = new bool[vertexCount];
+    int* stack = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
     {
         visited[i] = false;
     }
 
-    int* stack = new int[vertexCount];
-
     int componentNumber = 0;
-
-    cout << "Connected Components:" << endl;
 
     for (int i = 0; i < vertexCount; i++)
     {
@@ -608,7 +624,7 @@ void Graph::displayConnectedComponents() const
             stack[++top] = i;
             visited[i] = true;
 
-            while (top != -1)
+            while (top >= 0)
             {
                 int currentIndex = stack[top--];
 
@@ -634,13 +650,11 @@ void Graph::displayConnectedComponents() const
         }
     }
 
-    cout << "Total Components: " << componentNumber << endl;
-
-    delete[] visited;
     delete[] stack;
+    delete[] visited;
 }
 
-bool Graph::hasCycleDFS(int currentIndex, int parentIndex, bool visited[]) const
+bool Graph::hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) const
 {
     visited[currentIndex] = true;
 
@@ -650,14 +664,20 @@ bool Graph::hasCycleDFS(int currentIndex, int parentIndex, bool visited[]) const
     {
         int neighbourIndex = current->destinationIndex;
 
+        if (current->edgeID == parentEdgeID)
+        {
+            current = current->next;
+            continue;
+        }
+
         if (!visited[neighbourIndex])
         {
-            if (hasCycleDFS(neighbourIndex, currentIndex, visited))
+            if (hasCycleDFS(neighbourIndex, current->edgeID, visited))
             {
                 return true;
             }
         }
-        else if (neighbourIndex != parentIndex)
+        else
         {
             return true;
         }
@@ -670,6 +690,12 @@ bool Graph::hasCycleDFS(int currentIndex, int parentIndex, bool visited[]) const
 
 bool Graph::hasCycleUndirected() const
 {
+    if (!hasOnlyUndirectedEdges())
+    {
+        cout << "Cycle detection requires an undirected graph." << endl;
+        return false;
+    }
+
     bool* visited = new bool[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
@@ -734,4 +760,18 @@ bool Graph::hasNegativeWeight() const
 bool Graph::hasNonNegativeWeights() const
 {
     return !hasNegativeWeight();
+}
+
+
+bool Graph::hasOnlyUndirectedEdges() const
+{
+    for (int i = 0; i < edgeCount; i++)
+    {
+        if (edges[i].directed)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

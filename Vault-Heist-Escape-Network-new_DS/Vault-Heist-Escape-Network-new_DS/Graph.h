@@ -51,6 +51,7 @@ private:
 
     int findVertexIndex(int vertexID) const;
     void clearAdjacencyLists();
+    bool hasOnlyUndirectedEdges() const;
 
 public:
     Graph(int maxVertices, int maxEdges);
@@ -78,7 +79,7 @@ public:
     void displayAdjacencyMatrix() const;
 
     int getDegree(int vertexID) const;
-    void getNeighbours(int vertexID, int neighbours[], int& count) const;
+    void getNeighbours(int vertexID, int neighbours[], int& count, int maxSize) const;
     void displayNeighbours(int vertexID) const;
 
     void BFS(int startVertexID) const;
@@ -88,7 +89,7 @@ public:
 
     void displayConnectedComponents() const;
     bool hasCycleUndirected() const;
-    bool hasCycleDFS(int currentIndex, int parentIndex, bool visited[]) const;
+    bool hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) const;
 
     void displayEdges() const;
     bool hasNegativeWeight() const;
