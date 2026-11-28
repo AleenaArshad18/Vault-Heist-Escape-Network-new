@@ -1,6 +1,8 @@
 #pragma once
 #include "Graph.h"
 
+class EventRecorder;
+
 class CriticalPoints
 {
 private:

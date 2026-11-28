@@ -2,6 +2,8 @@
 #pragma once
 #include "Graph.h"
 
+class EventRecorder;
+
 class EdmondsKarp
 {
 public:

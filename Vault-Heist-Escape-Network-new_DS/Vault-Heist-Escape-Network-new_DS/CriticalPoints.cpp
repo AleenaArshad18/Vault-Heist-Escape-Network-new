@@ -1,5 +1,6 @@
 
 #include "CriticalPoints.h"
+#include "EventRecorder.h"
 #include <iostream>
 
 using namespace std;

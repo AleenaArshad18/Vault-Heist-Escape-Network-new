@@ -12,7 +12,7 @@ bool BellmanFord::findShortestPaths(
     int previous[],
     EventRecorder* recorder) const
 {
-    const int INF = 999999;
+    const int INF = 1000000000;
 
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();

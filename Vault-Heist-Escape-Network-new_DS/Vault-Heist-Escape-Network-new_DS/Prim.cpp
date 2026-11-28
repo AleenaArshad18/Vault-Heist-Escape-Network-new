@@ -1,6 +1,6 @@
 
 #include "Prim.h"
-
+#include "EventRecorder.h"
 using namespace std;
 
 bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& mstCount, int& totalWeight) const

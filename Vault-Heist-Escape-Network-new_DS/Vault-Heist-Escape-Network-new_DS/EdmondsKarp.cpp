@@ -1,6 +1,6 @@
 
 #include "EdmondsKarp.h"
-#include <climits>
+#include "EventRecorder.h"
 
 using namespace std;
 
@@ -184,7 +184,7 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
 
         // Find the bottleneck capacity.
 
-        int pathFlow = INT_MAX;
+        int pathFlow = 2147483647;
         int current = sink;
 
         while (current != source)

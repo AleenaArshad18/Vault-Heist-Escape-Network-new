@@ -1,7 +1,7 @@
 
 #include "Bipartite.h"
 #include <iostream>
-
+#include "EventRecorder.h"
 using namespace std;
 
 bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const

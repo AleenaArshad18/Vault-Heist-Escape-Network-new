@@ -1,6 +1,7 @@
 
 #include "Kruskal.h"
 #include "UnionFind.h"
+#include "EventRecorder.h"
 #include <iostream>
 
 using namespace std;
