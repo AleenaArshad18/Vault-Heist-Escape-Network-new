@@ -66,7 +66,7 @@ void LevelManager::initializeMissionInfo()
         "Secure the Network",
         "Prim",
         "Grow a minimum spanning tree from the Vault, selecting the cheapest connecting edge each time.",
-        "A minimum spanning tree has 4 edges and total weight 19.",
+        "A minimum spanning tree has 4 edges and total weight 22.",
         0
     };
 
