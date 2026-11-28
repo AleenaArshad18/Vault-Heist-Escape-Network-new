@@ -1050,5 +1050,81 @@ int main()
             << " Priority: " << result.priority << endl;
     }
 
+
+    cout << endl << "========== MIN HEAP EDGE CASE TESTS ==========" << endl;
+
+    MinHeap emptyHeap(2);
+    HeapNode emptyResult;
+
+    bool emptyExtractResult = emptyHeap.extractMin(emptyResult);
+    cout << "Empty extraction: "
+        << (emptyExtractResult ? "FAILED" : "PASSED") << endl;
+
+    MinHeap expansionHeap(2);
+    expansionHeap.insert(9, 0);
+    expansionHeap.insert(3, 1);
+    expansionHeap.insert(7, 2);
+    expansionHeap.insert(1, 3);
+    expansionHeap.insert(5, 4);
+
+    bool expansionOrderCorrect = true;
+    int previousPriority = -1000000000;
+    int expansionExtractedCount = 0;
+
+    while (expansionHeap.extractMin(emptyResult))
+    {
+        if (emptyResult.priority < previousPriority)
+            expansionOrderCorrect = false;
+
+        previousPriority = emptyResult.priority;
+        expansionExtractedCount++;
+    }
+
+    if (expansionExtractedCount != 5)
+        expansionOrderCorrect = false;
+
+    cout << "Capacity expansion and extraction order: "
+        << (expansionOrderCorrect ? "PASSED" : "FAILED") << endl;
+
+    MinHeap equalPriorityHeap(2);
+    equalPriorityHeap.insert(4, 10);
+    equalPriorityHeap.insert(4, 11);
+    equalPriorityHeap.insert(4, 12);
+
+    bool equalPrioritiesCorrect = true;
+    int equalPriorityCount = 0;
+
+    while (equalPriorityHeap.extractMin(emptyResult))
+    {
+        if (emptyResult.priority != 4)
+            equalPrioritiesCorrect = false;
+
+        equalPriorityCount++;
+    }
+
+    if (equalPriorityCount != 3)
+        equalPrioritiesCorrect = false;
+
+    cout << "Equal priority values: "
+        << (equalPrioritiesCorrect ? "PASSED" : "FAILED") << endl;
+
+    MinHeap reusableHeap(3);
+    reusableHeap.insert(8, 0);
+    reusableHeap.insert(2, 1);
+    reusableHeap.clear();
+
+    bool clearWorked = reusableHeap.isEmpty() &&
+        reusableHeap.getSize() == 0;
+
+    reusableHeap.insert(6, 2);
+
+    bool reuseWorked =
+        reusableHeap.extractMin(emptyResult) &&
+        emptyResult.priority == 6 &&
+        reusableHeap.isEmpty();
+
+    cout << "Clear and reuse: "
+        << ((clearWorked && reuseWorked) ? "PASSED" : "FAILED") << endl;
+
     return 0;
 }
