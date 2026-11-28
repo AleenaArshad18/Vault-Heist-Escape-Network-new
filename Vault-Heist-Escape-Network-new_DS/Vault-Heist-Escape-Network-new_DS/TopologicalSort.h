@@ -6,5 +6,10 @@ class EventRecorder;
 class TopologicalSort
 {
 public:
-    bool kahnSort(const Graph& graph, int result[], int& resultCount) const;
+    bool kahnSort(
+        const Graph& graph,
+        int result[],
+        int& resultCount,
+        EventRecorder* recorder = nullptr
+    ) const;
 };

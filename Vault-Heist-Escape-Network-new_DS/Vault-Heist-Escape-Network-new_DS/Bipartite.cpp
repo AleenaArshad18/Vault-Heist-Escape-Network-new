@@ -1,22 +1,26 @@
-
 #include "Bipartite.h"
-#include <iostream>
 #include "EventRecorder.h"
+#include <iostream>
+
 using namespace std;
 
-bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const
+bool Bipartite::checkBipartite(
+    const Graph& graph,
+    int colours[],
+    EventRecorder* recorder) const
 {
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();
 
-    // Initialize all vertices as uncoloured.
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            -1, -1, -1, -1, 0, 0,
+            "Bipartite checking started"
+        ));
 
     for (int i = 0; i < vertexCount; i++)
-    {
         colours[i] = -1;
-    }
-
-    // Bipartite checking requires an undirected graph.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -25,37 +29,64 @@ bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const
         if (edge->directed)
         {
             cout << "Bipartite checking requires an undirected graph!" << endl;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, edge->id, edge->fromID, edge->toID,
+                    0, 0, "Bipartite checking requires an undirected graph"
+                ));
+
             return false;
         }
     }
 
-    // Create a queue for BFS.
-
     int* queue = new int[vertexCount];
-
-    // Check every connected component.
 
     for (int start = 0; start < vertexCount; start++)
     {
         if (colours[start] != -1)
-        {
             continue;
-        }
 
         int front = 0;
         int rear = 0;
-
-        // Assign the starting vertex colour 0.
 
         colours[start] = 0;
 
         queue[rear] = start;
         rear++;
 
+        const Vertex* startVertex = graph.getVertexAt(start);
+
+        if (recorder != nullptr)
+        {
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_DISCOVERED,
+                startVertex->id, -1, -1, -1,
+                0, 0, "Starting vertex discovered"
+            ));
+
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_COLORED,
+                startVertex->id, -1, -1, -1,
+                0, -1, "Vertex colored with group 0"
+            ));
+        }
+
         while (front < rear)
         {
             int currentIndex = queue[front];
             front++;
+
+            const Vertex* currentVertex = graph.getVertexAt(currentIndex);
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::VERTEX_PROCESSED,
+                    currentVertex->id, -1, -1, -1,
+                    colours[currentIndex], 0,
+                    "Processing vertex"
+                ));
 
             const EdgeNode* current = graph.getAdjacencyHead(currentIndex);
 
@@ -63,7 +94,19 @@ bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const
             {
                 int neighbour = current->destinationIndex;
 
-                // If neighbour is uncoloured, assign opposite colour.
+                const Vertex* neighbourVertex = graph.getVertexAt(neighbour);
+
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::EDGE_EXAMINED,
+                        neighbourVertex->id,
+                        current->edgeID,
+                        currentVertex->id,
+                        neighbourVertex->id,
+                        current->weight,
+                        colours[neighbour],
+                        "Examining edge"
+                    ));
 
                 if (colours[neighbour] == -1)
                 {
@@ -71,13 +114,54 @@ bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const
 
                     queue[rear] = neighbour;
                     rear++;
+
+                    if (recorder != nullptr)
+                    {
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::VERTEX_DISCOVERED,
+                            neighbourVertex->id,
+                            current->edgeID,
+                            currentVertex->id,
+                            neighbourVertex->id,
+                            0, 0, "New vertex discovered"
+                        ));
+
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::VERTEX_COLORED,
+                            neighbourVertex->id,
+                            current->edgeID,
+                            currentVertex->id,
+                            neighbourVertex->id,
+                            colours[neighbour],
+                            colours[currentIndex],
+                            "Vertex assigned opposite colour"
+                        ));
+                    }
                 }
-
-                // Adjacent vertices cannot have the same colour.
-
                 else if (colours[neighbour] == colours[currentIndex])
                 {
                     delete[] queue;
+
+                    if (recorder != nullptr)
+                    {
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::CYCLE_DETECTED,
+                            neighbourVertex->id,
+                            current->edgeID,
+                            currentVertex->id,
+                            neighbourVertex->id,
+                            colours[neighbour],
+                            colours[currentIndex],
+                            "Adjacent vertices have the same colour"
+                        ));
+
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::ALGORITHM_FAILED,
+                            -1, -1, -1, -1,
+                            0, 0, "Graph is not bipartite"
+                        ));
+                    }
+
                     return false;
                 }
 
@@ -87,6 +171,13 @@ bool Bipartite::checkBipartite(const Graph& graph, int colours[]) const
     }
 
     delete[] queue;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1, vertexCount, 0,
+            "Graph is bipartite"
+        ));
 
     return true;
 }

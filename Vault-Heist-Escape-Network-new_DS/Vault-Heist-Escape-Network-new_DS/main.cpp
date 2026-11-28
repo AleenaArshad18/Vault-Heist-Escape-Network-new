@@ -9,8 +9,31 @@
 #include "CriticalPoints.h"
 #include "EdmondsKarp.h"
 #include "EventRecorder.h"
+#include "AlgorithmEvent.h"
 
 using namespace std;
+
+void displayEvents(EventRecorder& events, const char* algorithmName)
+{
+    cout << endl << algorithmName << " EVENT TEST:" << endl;
+
+    cout << "Event count: " << events.getEventCount() << endl;
+
+    for (int i = 0; i < events.getEventCount(); i++)
+    {
+        const AlgorithmEvent* event = events.getEventAt(i);
+
+        cout << "Event " << i
+            << " | Type: " << event->type
+            << " | Vertex: " << event->vertexID
+            << " | Edge: " << event->edgeID
+            << " | From: " << event->fromID
+            << " | To: " << event->toID
+            << " | Value: " << event->value
+            << " | Auxiliary: " << event->auxiliaryValue
+            << " | " << event->message << endl;
+    }
+}
 
 int main()
 {
@@ -197,7 +220,7 @@ int main()
 
             cout << "Vertex " << vertex->id << ": ";
 
-            if (bfDistances[i] == 999999)
+            if (bfDistances[i] == 1000000000)
             {
                 cout << "Unreachable";
             }
@@ -289,6 +312,24 @@ int main()
         cout << "Graph does not have a complete Minimum Spanning Tree." << endl;
     }
 
+    // KRUSKAL EVENT TEST
+
+    EventRecorder kruskalEvents;
+
+    Edge eventMSTEdges[10];
+    int eventMSTCount;
+    int eventMSTWeight;
+
+    bool kruskalEventSuccess = kruskal.findMST(
+        mstGraph,
+        eventMSTEdges,
+        eventMSTCount,
+        eventMSTWeight,
+        &kruskalEvents
+    );
+
+    displayEvents(kruskalEvents, "KRUSKAL");
+
     Graph primGraph(10, 20);
 
     primGraph.addVertex(0, "Vault", 100, 100);
@@ -328,6 +369,26 @@ int main()
         cout << "Graph does not have a complete Minimum Spanning Tree." << endl;
     }
 
+    // PRIM EVENT TEST
+
+    EventRecorder primEvents;
+
+    Edge eventPrimEdges[10];
+    int eventPrimCount;
+    int eventPrimWeight;
+
+    bool primEventSuccess = prim.findMST(
+        primGraph,
+        0,
+        eventPrimEdges,
+        eventPrimCount,
+        eventPrimWeight,
+        &primEvents
+    );
+
+    displayEvents(primEvents, "PRIM");
+
+
     Graph topoGraph(10, 20);
 
     topoGraph.addVertex(0, "Plan", 100, 100);
@@ -365,6 +426,22 @@ int main()
         cout << "Graph contains a cycle. Topological sorting is not possible." << endl;
     }
 
+    // TOPOLOGICAL SORT EVENT TEST
+
+    EventRecorder topoEvents;
+
+    int eventOrdering[10];
+    int eventOrderingCount;
+
+    bool topoEventSuccess = topo.kahnSort(
+        topoGraph,
+        eventOrdering,
+        eventOrderingCount,
+        &topoEvents
+    );
+
+    displayEvents(topoEvents, "TOPOLOGICAL SORT");
+
     Graph bipartiteGraph(10, 20);
 
     bipartiteGraph.addVertex(0, "Vault", 100, 100);
@@ -399,6 +476,20 @@ int main()
     {
         cout << "Graph is NOT Bipartite." << endl;
     }
+
+    // BIPARTITE EVENT TEST
+
+    EventRecorder bipartiteEvents;
+
+    int eventColours[10];
+
+    bool bipartiteEventSuccess = bipartite.checkBipartite(
+        bipartiteGraph,
+        eventColours,
+        &bipartiteEvents
+    );
+
+    displayEvents(bipartiteEvents, "BIPARTITE");
 
     Graph criticalGraph(10, 20);
 
@@ -451,6 +542,27 @@ int main()
             cout << articulationPoints[i] << endl;
         }
     }
+
+    // CRITICAL POINTS EVENT TEST
+
+    EventRecorder criticalEvents;
+
+    Edge eventBridges[20];
+    int eventBridgeCount;
+
+    int eventArticulationPoints[10];
+    int eventArticulationCount;
+
+    bool criticalEventSuccess = criticalPoints.findCriticalPoints(
+        criticalGraph,
+        eventBridges,
+        eventBridgeCount,
+        eventArticulationPoints,
+        eventArticulationCount,
+        &criticalEvents
+    );
+
+    displayEvents(criticalEvents, "CRITICAL POINTS");
 
     Graph flowGraph(10, 20);
 
@@ -537,15 +649,28 @@ int main()
         cout << "Invalid graph or source/destination." << endl;
     }
 
+    // EDMONDS-KARP EVENT TEST
 
+    EventRecorder flowEvents;
+
+    int eventMaxFlow;
+    Edge eventMinCutEdges[20];
+    int eventMinCutCount;
+    int eventEdgeFlows[20];
+
+    bool flowEventSuccess = edmondsKarp.findMaxFlow(
+        flowGraph,
+        0,
+        5,
+        eventMaxFlow,
+        eventMinCutEdges,
+        eventMinCutCount,
+        eventEdgeFlows,
+        &flowEvents
+    );
+
+    displayEvents(flowEvents, "EDMONDS-KARP");
     
-
-    bipartiteGraph.addEdge(0, 1, 1, 10, false);
-    bipartiteGraph.addEdge(0, 3, 1, 10, false);
-    bipartiteGraph.addEdge(2, 1, 1, 10, false);
-    bipartiteGraph.addEdge(2, 3, 1, 10, false);
-
-
     cout << endl;
     cout << "========== PHASE 1: EDGE CASE TESTS ==========" << endl;
 

@@ -1,11 +1,21 @@
-
 #include "CriticalPoints.h"
 #include "EventRecorder.h"
 #include <iostream>
 
 using namespace std;
 
-void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID, int& timer, bool visited[], int discovery[], int low[], Edge bridges[], int& bridgeCount, bool articulationFlags[]) const
+void CriticalPoints::DFS(
+    const Graph& graph,
+    int currentIndex,
+    int parentEdgeID,
+    int& timer,
+    bool visited[],
+    int discovery[],
+    int low[],
+    Edge bridges[],
+    int& bridgeCount,
+    bool articulationFlags[],
+    EventRecorder* recorder) const
 {
     visited[currentIndex] = true;
 
@@ -13,6 +23,16 @@ void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID,
     low[currentIndex] = timer;
 
     timer++;
+
+    const Vertex* currentVertex = graph.getVertexAt(currentIndex);
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::VERTEX_DISCOVERED,
+            currentVertex->id, -1, -1, -1,
+            discovery[currentIndex], low[currentIndex],
+            "Vertex discovered by DFS"
+        ));
 
     int children = 0;
 
@@ -22,7 +42,19 @@ void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID,
     {
         int neighbour = current->destinationIndex;
 
-        // Ignore the edge used to reach the current vertex.
+        const Vertex* neighbourVertex = graph.getVertexAt(neighbour);
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::EDGE_EXAMINED,
+                neighbourVertex->id,
+                current->edgeID,
+                currentVertex->id,
+                neighbourVertex->id,
+                current->weight,
+                low[currentIndex],
+                "Examining edge"
+            ));
 
         if (current->edgeID == parentEdgeID)
         {
@@ -34,62 +66,102 @@ void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID,
         {
             children++;
 
-            DFS(graph, neighbour, current->edgeID, timer, visited,
-                discovery, low, bridges, bridgeCount, articulationFlags);
+            DFS(
+                graph,
+                neighbour,
+                current->edgeID,
+                timer,
+                visited,
+                discovery,
+                low,
+                bridges,
+                bridgeCount,
+                articulationFlags,
+                recorder
+            );
+
+            int oldLow = low[currentIndex];
 
             if (low[neighbour] < low[currentIndex])
-            {
                 low[currentIndex] = low[neighbour];
-            }
 
-            // Check bridge condition.
+            if (recorder != nullptr && oldLow != low[currentIndex])
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::LOW_LINK_UPDATED,
+                    currentVertex->id,
+                    current->edgeID,
+                    currentVertex->id,
+                    neighbourVertex->id,
+                    oldLow,
+                    low[currentIndex],
+                    "Low-link value updated"
+                ));
 
             if (low[neighbour] > discovery[currentIndex])
             {
-                const Vertex* fromVertex = graph.getVertexAt(currentIndex);
-                const Vertex* toVertex = graph.getVertexAt(neighbour);
-
                 bridges[bridgeCount].id = current->edgeID;
-                bridges[bridgeCount].fromID = fromVertex->id;
-                bridges[bridgeCount].toID = toVertex->id;
+                bridges[bridgeCount].fromID = currentVertex->id;
+                bridges[bridgeCount].toID = neighbourVertex->id;
                 bridges[bridgeCount].weight = current->weight;
                 bridges[bridgeCount].capacity = current->capacity;
                 bridges[bridgeCount].directed = false;
 
                 bridgeCount++;
+
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::BRIDGE_FOUND,
+                        currentVertex->id,
+                        current->edgeID,
+                        currentVertex->id,
+                        neighbourVertex->id,
+                        current->weight,
+                        low[neighbour],
+                        "Bridge found"
+                    ));
             }
 
-            // Check articulation point condition.
-
-            if (parentEdgeID != -1 && low[neighbour] >= discovery[currentIndex])
+            if (parentEdgeID != -1 &&
+                low[neighbour] >= discovery[currentIndex])
             {
                 articulationFlags[currentIndex] = true;
             }
         }
         else
         {
-            // Back edge: update low using the neighbour's discovery time.
+            int oldLow = low[currentIndex];
 
             if (discovery[neighbour] < low[currentIndex])
-            {
                 low[currentIndex] = discovery[neighbour];
-            }
+
+            if (recorder != nullptr && oldLow != low[currentIndex])
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::LOW_LINK_UPDATED,
+                    currentVertex->id,
+                    current->edgeID,
+                    currentVertex->id,
+                    neighbourVertex->id,
+                    oldLow,
+                    low[currentIndex],
+                    "Low-link updated using back edge"
+                ));
         }
 
         current = current->next;
     }
 
-    // Special condition for DFS root.
-
     if (parentEdgeID == -1 && children > 1)
-    {
         articulationFlags[currentIndex] = true;
-    }
 }
 
 
-bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int& bridgeCount,
-    int articulationPoints[], int& articulationCount) const
+bool CriticalPoints::findCriticalPoints(
+    const Graph& graph,
+    Edge bridges[],
+    int& bridgeCount,
+    int articulationPoints[],
+    int& articulationCount,
+    EventRecorder* recorder) const
 {
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();
@@ -97,7 +169,12 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
     bridgeCount = 0;
     articulationCount = 0;
 
-    // Critical points require an entirely undirected graph.
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            -1, -1, -1, -1, 0, 0,
+            "Critical Points started"
+        ));
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -106,6 +183,14 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
         if (edge->directed)
         {
             cout << "Bridges and articulation points require an undirected graph!" << endl;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, edge->id, edge->fromID, edge->toID,
+                    0, 0, "Critical Points requires an undirected graph"
+                ));
+
             return false;
         }
     }
@@ -125,17 +210,25 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
 
     int timer = 0;
 
-    // Process every connected component.
-
     for (int i = 0; i < vertexCount; i++)
     {
         if (!visited[i])
         {
-            DFS(graph, i, -1, timer, visited, discovery, low,  bridges, bridgeCount, articulationFlags);
+            DFS(
+                graph,
+                i,
+                -1,
+                timer,
+                visited,
+                discovery,
+                low,
+                bridges,
+                bridgeCount,
+                articulationFlags,
+                recorder
+            );
         }
     }
-
-    // Collect articulation point vertex IDs.
 
     for (int i = 0; i < vertexCount; i++)
     {
@@ -145,6 +238,14 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
 
             articulationPoints[articulationCount] = vertex->id;
             articulationCount++;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ARTICULATION_FOUND,
+                    vertex->id, -1, -1, -1,
+                    discovery[i], low[i],
+                    "Articulation point found"
+                ));
         }
     }
 
@@ -152,6 +253,14 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
     delete[] discovery;
     delete[] low;
     delete[] articulationFlags;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            bridgeCount, articulationCount,
+            "Critical Points completed"
+        ));
 
     return true;
 }

@@ -6,11 +6,27 @@ class EventRecorder;
 class CriticalPoints
 {
 private:
-    void DFS(const Graph& graph, int currentIndex, int parentEdgeID, int& timer,
-        bool visited[], int discovery[], int low[], Edge bridges[], int& bridgeCount,
-        bool articulationFlags[]) const;
+    void DFS(
+        const Graph& graph,
+        int currentIndex,
+        int parentEdgeID,
+        int& timer,
+        bool visited[],
+        int discovery[],
+        int low[],
+        Edge bridges[],
+        int& bridgeCount,
+        bool articulationFlags[],
+        EventRecorder* recorder
+    ) const;
 
 public:
-    bool findCriticalPoints(const Graph& graph, Edge bridges[], int& bridgeCount,
-        int articulationPoints[], int& articulationCount) const;
+    bool findCriticalPoints(
+        const Graph& graph,
+        Edge bridges[],
+        int& bridgeCount,
+        int articulationPoints[],
+        int& articulationCount,
+        EventRecorder* recorder = nullptr
+    ) const;
 };

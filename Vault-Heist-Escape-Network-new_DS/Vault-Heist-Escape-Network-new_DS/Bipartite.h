@@ -6,5 +6,9 @@ class EventRecorder;
 class Bipartite
 {
 public:
-    bool checkBipartite(const Graph& graph, int colours[]) const;
+    bool checkBipartite(
+        const Graph& graph,
+        int colours[],
+        EventRecorder* recorder = nullptr
+    ) const;
 };

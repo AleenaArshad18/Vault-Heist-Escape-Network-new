@@ -1,9 +1,13 @@
-
 #include "Prim.h"
 #include "EventRecorder.h"
-using namespace std;
 
-bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& mstCount, int& totalWeight) const
+bool Prim::findMST(
+    const Graph& graph,
+    int startVertexID,
+    Edge mstEdges[],
+    int& mstCount,
+    int& totalWeight,
+    EventRecorder* recorder) const
 {
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();
@@ -11,14 +15,24 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
     mstCount = 0;
     totalWeight = 0;
 
-    // An empty graph cannot have an MST.
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            startVertexID, -1, -1, -1, 0, 0,
+            "Prim started"
+        ));
 
     if (vertexCount == 0)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1, 0, 0,
+                "Prim failed: empty graph"
+            ));
+
         return false;
     }
-
-    // Prim requires an undirected graph.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -26,42 +40,58 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
 
         if (edge->directed)
         {
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, edge->id, edge->fromID, edge->toID,
+                    0, 0, "Prim requires an undirected graph"
+                ));
+
             return false;
         }
     }
-
-    // Validate the starting vertex.
 
     int startIndex = graph.getVertexIndexByID(startVertexID);
 
     if (startIndex == -1)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                startVertexID, -1, -1, -1, 0, 0,
+                "Prim failed: starting vertex not found"
+            ));
+
         return false;
     }
 
-    // A graph with one vertex already has an MST.
-
     if (vertexCount == 1)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_COMPLETED,
+                -1, -1, -1, -1, 0, 0,
+                "Prim completed"
+            ));
+
         return true;
     }
-
-    // Create and initialize visited array.
 
     bool* visited = new bool[vertexCount];
 
     const int INF = 1000000000;
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
-
-    // Start from the selected vertex.
 
     visited[startIndex] = true;
 
-    // Continue until V-1 edges have been selected.
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::VERTEX_DISCOVERED,
+            startVertexID, -1, -1, -1, 0, 0,
+            "Starting vertex discovered"
+        ));
 
     while (mstCount < vertexCount - 1)
     {
@@ -70,9 +100,6 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
         int selectedFrom = -1;
         int selectedTo = -1;
         int selectedEdgeID = -1;
-
-        // Find the minimum-weight edge connecting
-        // a visited vertex to an unvisited vertex.
 
         for (int i = 0; i < vertexCount; i++)
         {
@@ -84,12 +111,32 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
                 {
                     int neighbour = current->destinationIndex;
 
-                    if (!visited[neighbour] && current->weight < minimumWeight)
+                    if (!visited[neighbour])
                     {
-                        minimumWeight = current->weight;
-                        selectedFrom = i;
-                        selectedTo = neighbour;
-                        selectedEdgeID = current->edgeID;
+                        if (recorder != nullptr)
+                        {
+                            const Vertex* fromVertex = graph.getVertexAt(i);
+                            const Vertex* toVertex = graph.getVertexAt(neighbour);
+
+                            recorder->record(AlgorithmEvent(
+                                AlgorithmEvent::EDGE_EXAMINED,
+                                toVertex->id,
+                                current->edgeID,
+                                fromVertex->id,
+                                toVertex->id,
+                                current->weight,
+                                minimumWeight,
+                                "Examining edge"
+                            ));
+                        }
+
+                        if (current->weight < minimumWeight)
+                        {
+                            minimumWeight = current->weight;
+                            selectedFrom = i;
+                            selectedTo = neighbour;
+                            selectedEdgeID = current->edgeID;
+                        }
                     }
 
                     current = current->next;
@@ -97,15 +144,19 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
             }
         }
 
-        // No connecting edge means the graph is disconnected.
-
         if (selectedTo == -1)
         {
             delete[] visited;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, -1, -1, -1, mstCount, vertexCount - 1,
+                    "Prim failed: graph is disconnected"
+                ));
+
             return false;
         }
-
-        // Find the original edge so all its fields are copied.
 
         const Edge* selectedEdge = nullptr;
 
@@ -123,22 +174,70 @@ bool Prim::findMST(const Graph& graph, int startVertexID, Edge mstEdges[], int& 
         if (selectedEdge == nullptr)
         {
             delete[] visited;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, selectedEdgeID, -1, -1, 0, 0,
+                    "Prim failed: selected edge not found"
+                ));
+
             return false;
         }
-
-        // Add the selected edge to the MST.
 
         mstEdges[mstCount] = *selectedEdge;
 
         mstCount++;
         totalWeight += minimumWeight;
 
-        // Mark the newly connected vertex as visited.
-
         visited[selectedTo] = true;
+
+        if (recorder != nullptr)
+        {
+            const Vertex* fromVertex = graph.getVertexAt(selectedFrom);
+            const Vertex* toVertex = graph.getVertexAt(selectedTo);
+
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::EDGE_SELECTED,
+                toVertex->id,
+                selectedEdgeID,
+                fromVertex->id,
+                toVertex->id,
+                minimumWeight,
+                totalWeight,
+                "Minimum edge selected for MST"
+            ));
+
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_DISCOVERED,
+                toVertex->id,
+                selectedEdgeID,
+                fromVertex->id,
+                toVertex->id,
+                minimumWeight,
+                0,
+                "New vertex added to MST"
+            ));
+
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_PROCESSED,
+                toVertex->id,
+                -1, -1, -1,
+                totalWeight,
+                mstCount,
+                "Vertex processed"
+            ));
+        }
     }
 
     delete[] visited;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1, totalWeight, mstCount,
+            "Prim completed"
+        ));
 
     return true;
 }

@@ -1,4 +1,3 @@
-
 #include "EdmondsKarp.h"
 #include "EventRecorder.h"
 
@@ -15,9 +14,15 @@ struct ResidualEdge
     bool isOriginal;
 };
 
-bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
-    int& maxFlow, Edge minCutEdges[], int& minCutCount,
-    int edgeFlows[]) const
+bool EdmondsKarp::findMaxFlow(
+    const Graph& graph,
+    int sourceID,
+    int sinkID,
+    int& maxFlow,
+    Edge minCutEdges[],
+    int& minCutCount,
+    int edgeFlows[],
+    EventRecorder* recorder) const
 {
     int vertexCount = graph.getVertexCount();
     int edgeCount = graph.getEdgeCount();
@@ -25,20 +30,41 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
     maxFlow = 0;
     minCutCount = 0;
 
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            sourceID, -1, -1, -1, 0, 0,
+            "Edmonds-Karp started"
+        ));
+
     int source = graph.getVertexIndexByID(sourceID);
     int sink = graph.getVertexIndexByID(sinkID);
 
     if (vertexCount == 0 || source == -1 || sink == -1 || source == sink)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                sourceID, -1, sourceID, sinkID,
+                0, 0, "Invalid source or sink"
+            ));
+
         return false;
     }
 
     if (edgeCount > 0 && minCutEdges == nullptr)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1,
+                0, 0, "Minimum cut output array is missing"
+            ));
+
         return false;
     }
 
-    // Edmonds-Karp requires directed edges with nonnegative capacities.
+    // Validate directed edges and nonnegative capacities.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -46,6 +72,14 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
 
         if (!edge->directed || edge->capacity < 0)
         {
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, edge->id, edge->fromID, edge->toID,
+                    edge->capacity, 0,
+                    "Edmonds-Karp requires directed edges with nonnegative capacities"
+                ));
+
             return false;
         }
 
@@ -54,32 +88,30 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
 
         if (from == -1 || to == -1)
         {
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::ALGORITHM_FAILED,
+                    -1, edge->id, edge->fromID, edge->toID,
+                    0, 0, "Invalid edge endpoint"
+                ));
+
             return false;
         }
     }
 
-    // Initialize the optional flow output array.
-
     if (edgeFlows != nullptr)
     {
         for (int i = 0; i < edgeCount; i++)
-        {
             edgeFlows[i] = 0;
-        }
     }
 
-    // Each original edge gets two residual records:
-    // one forward edge and one reverse edge.
+    // Each original edge gets a forward and reverse residual edge.
 
     ResidualEdge* residualEdges = new ResidualEdge[edgeCount * 2];
     int* adjacencyHead = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         adjacencyHead[i] = -1;
-    }
-
-    // Build the residual adjacency lists.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -91,8 +123,6 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
         int forwardIndex = 2 * i;
         int reverseIndex = 2 * i + 1;
 
-        // Forward residual edge.
-
         residualEdges[forwardIndex].from = from;
         residualEdges[forwardIndex].to = to;
         residualEdges[forwardIndex].capacity = edge->capacity;
@@ -102,8 +132,6 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
         residualEdges[forwardIndex].isOriginal = true;
 
         adjacencyHead[from] = forwardIndex;
-
-        // Reverse residual edge.
 
         residualEdges[reverseIndex].from = to;
         residualEdges[reverseIndex].to = from;
@@ -122,7 +150,7 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
 
     long long totalFlow = 0;
 
-    // Find augmenting paths using BFS.
+    // Repeatedly find augmenting paths using BFS.
 
     while (true)
     {
@@ -161,28 +189,22 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
                     rear++;
 
                     if (neighbour == sink)
-                    {
                         break;
-                    }
                 }
 
                 edgeIndex = residualEdges[edgeIndex].next;
             }
 
             if (visited[sink])
-            {
                 break;
-            }
         }
 
-        // No more augmenting paths exist.
+        // No more augmenting paths.
 
         if (!visited[sink])
-        {
             break;
-        }
 
-        // Find the bottleneck capacity.
+        // Find bottleneck capacity.
 
         int pathFlow = 2147483647;
         int current = sink;
@@ -192,14 +214,20 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
             int edgeIndex = parentEdge[current];
 
             if (residualEdges[edgeIndex].capacity < pathFlow)
-            {
                 pathFlow = residualEdges[edgeIndex].capacity;
-            }
 
             current = residualEdges[edgeIndex].from;
         }
 
-        // Update the residual capacities and original edge flows.
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::AUGMENTING_PATH_FOUND,
+                sinkID, -1, sourceID, sinkID,
+                pathFlow, static_cast<int>(totalFlow),
+                "Augmenting path found"
+            ));
+
+        // Update residual capacities and original edge flows.
 
         current = sink;
 
@@ -211,21 +239,33 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
             residualEdges[edgeIndex].capacity -= pathFlow;
             residualEdges[reverseIndex].capacity += pathFlow;
 
-            // Track flow on the corresponding original edge.
+            int originalIndex = residualEdges[edgeIndex].originalEdgeIndex;
 
             if (edgeFlows != nullptr)
             {
-                int originalIndex =
-                    residualEdges[edgeIndex].originalEdgeIndex;
-
                 if (residualEdges[edgeIndex].isOriginal)
-                {
                     edgeFlows[originalIndex] += pathFlow;
-                }
                 else
-                {
                     edgeFlows[originalIndex] -= pathFlow;
-                }
+            }
+
+            if (recorder != nullptr)
+            {
+                const Edge* originalEdge = graph.getEdgeAt(originalIndex);
+
+                int flowChange = residualEdges[edgeIndex].isOriginal
+                    ? pathFlow : -pathFlow;
+
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::FLOW_UPDATED,
+                    originalEdge->toID,
+                    originalEdge->id,
+                    originalEdge->fromID,
+                    originalEdge->toID,
+                    flowChange,
+                    edgeFlows != nullptr ? edgeFlows[originalIndex] : 0,
+                    "Original edge flow updated"
+                ));
             }
 
             current = residualEdges[edgeIndex].from;
@@ -234,12 +274,10 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
         totalFlow += pathFlow;
     }
 
-    // Find vertices reachable from the source in the final residual graph.
+    // Find vertices reachable from source in final residual graph.
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
 
     int front = 0;
     int rear = 0;
@@ -273,7 +311,7 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
         }
     }
 
-    // Original edges crossing the final cut form the minimum cut.
+    // Find original edges crossing the minimum cut.
 
     for (int i = 0; i < edgeCount; i++)
     {
@@ -286,10 +324,22 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
         {
             minCutEdges[minCutCount] = *edge;
             minCutCount++;
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::MIN_CUT_EDGE,
+                    edge->toID,
+                    edge->id,
+                    edge->fromID,
+                    edge->toID,
+                    edge->capacity,
+                    0,
+                    "Minimum cut edge found"
+                ));
         }
     }
 
-    // Release dynamically allocated memory.
+    // Release allocated memory.
 
     delete[] parentEdge;
     delete[] visited;
@@ -297,14 +347,27 @@ bool EdmondsKarp::findMaxFlow(const Graph& graph, int sourceID, int sinkID,
     delete[] adjacencyHead;
     delete[] residualEdges;
 
-    // The function returns an int, so reject an unrepresentable result.
-
-    if (totalFlow > INT_MAX)
+    if (totalFlow > 2147483647)
     {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1,
+                0, 0, "Maximum flow exceeds integer range"
+            ));
+
         return false;
     }
 
     maxFlow = static_cast<int>(totalFlow);
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            maxFlow, minCutCount,
+            "Edmonds-Karp completed"
+        ));
 
     return true;
 }
