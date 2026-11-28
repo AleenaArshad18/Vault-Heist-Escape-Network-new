@@ -1,4 +1,6 @@
 #include "Graph.h"
+#include "EventRecorder.h"
+#include "AlgorithmEvent.h"
 #include <iostream>
 
 using namespace std;
@@ -412,41 +414,67 @@ void Graph::displayNeighbours(int vertexID) const
 
     delete[] neighbours;
 }
-
-void Graph::BFS(int startVertexID) const
+void Graph::BFS(int startVertexID, EventRecorder* recorder) const
 {
     int startIndex = findVertexIndex(startVertexID);
 
     if (startIndex == -1)
     {
         cout << "Starting vertex not found!" << endl;
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                startVertexID, -1, -1, -1,
+                0, 0, "BFS failed: starting vertex not found"
+            ));
+
         return;
     }
 
     bool* visited = new bool[vertexCount];
+    int* queue = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
-
-    int* queue = new int[vertexCount];
 
     int front = 0;
     int rear = 0;
 
     visited[startIndex] = true;
-    queue[rear] = startIndex;
-    rear++;
+    queue[rear++] = startIndex;
+
+    if (recorder != nullptr)
+    {
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            startVertexID, -1, -1, -1,
+            0, 0, "BFS started"
+        ));
+
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::VERTEX_DISCOVERED,
+            startVertexID, -1, -1, -1,
+            0, 0, "Starting vertex discovered"
+        ));
+    }
 
     cout << "BFS Traversal: ";
 
     while (front < rear)
     {
-        int currentIndex = queue[front];
-        front++;
+        int currentIndex = queue[front++];
 
         cout << vertices[currentIndex].id << " ";
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_PROCESSED,
+                vertices[currentIndex].id,
+                -1, -1, -1,
+                front, rear,
+                "BFS processing vertex"
+            ));
 
         const EdgeNode* current = vertices[currentIndex].head;
 
@@ -454,12 +482,34 @@ void Graph::BFS(int startVertexID) const
         {
             int neighbourIndex = current->destinationIndex;
 
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::EDGE_EXAMINED,
+                    vertices[neighbourIndex].id,
+                    current->edgeID,
+                    vertices[currentIndex].id,
+                    vertices[neighbourIndex].id,
+                    current->weight,
+                    visited[neighbourIndex] ? 1 : 0,
+                    "BFS examining edge"
+                ));
+
             if (!visited[neighbourIndex])
             {
                 visited[neighbourIndex] = true;
+                queue[rear++] = neighbourIndex;
 
-                queue[rear] = neighbourIndex;
-                rear++;
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::VERTEX_DISCOVERED,
+                        vertices[neighbourIndex].id,
+                        current->edgeID,
+                        vertices[currentIndex].id,
+                        vertices[neighbourIndex].id,
+                        rear,
+                        0,
+                        "BFS discovered and queued vertex"
+                    ));
             }
 
             current = current->next;
@@ -468,17 +518,33 @@ void Graph::BFS(int startVertexID) const
 
     cout << endl;
 
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            vertexCount, 0,
+            "BFS completed"
+        ));
+
     delete[] visited;
     delete[] queue;
 }
 
-void Graph::DFS(int startVertexID) const
+void Graph::DFS(int startVertexID, EventRecorder* recorder) const
 {
     int startIndex = findVertexIndex(startVertexID);
 
     if (startIndex == -1)
     {
         cout << "Starting vertex not found." << endl;
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                startVertexID, -1, -1, -1,
+                0, 0, "DFS failed: starting vertex not found"
+            ));
+
         return;
     }
 
@@ -486,14 +552,27 @@ void Graph::DFS(int startVertexID) const
     int* stack = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
 
     int top = -1;
 
     stack[++top] = startIndex;
     visited[startIndex] = true;
+
+    if (recorder != nullptr)
+    {
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            startVertexID, -1, -1, -1,
+            0, 0, "DFS started"
+        ));
+
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::VERTEX_DISCOVERED,
+            startVertexID, -1, -1, -1,
+            0, 0, "Starting vertex discovered"
+        ));
+    }
 
     cout << "DFS Traversal: ";
 
@@ -503,8 +582,20 @@ void Graph::DFS(int startVertexID) const
 
         cout << vertices[currentIndex].id << " ";
 
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::VERTEX_PROCESSED,
+                vertices[currentIndex].id,
+                -1, -1, -1,
+                top, 0,
+                "DFS processing vertex"
+            ));
+
         int maxNeighbours = 2 * edgeCount + 1;
         int* neighbours = new int[maxNeighbours];
+        const EdgeNode** neighbourEdges =
+            new const EdgeNode * [maxNeighbours];
+
         int count = 0;
 
         const EdgeNode* current = vertices[currentIndex].head;
@@ -512,6 +603,8 @@ void Graph::DFS(int startVertexID) const
         while (current != nullptr && count < maxNeighbours)
         {
             neighbours[count] = current->destinationIndex;
+            neighbourEdges[count] = current;
+
             count++;
             current = current->next;
         }
@@ -519,28 +612,71 @@ void Graph::DFS(int startVertexID) const
         for (int i = count - 1; i >= 0; i--)
         {
             int neighbourIndex = neighbours[i];
+            const EdgeNode* edge = neighbourEdges[i];
+
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::EDGE_EXAMINED,
+                    vertices[neighbourIndex].id,
+                    edge->edgeID,
+                    vertices[currentIndex].id,
+                    vertices[neighbourIndex].id,
+                    edge->weight,
+                    visited[neighbourIndex] ? 1 : 0,
+                    "DFS examining edge"
+                ));
 
             if (!visited[neighbourIndex])
             {
                 visited[neighbourIndex] = true;
                 stack[++top] = neighbourIndex;
+
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::VERTEX_DISCOVERED,
+                        vertices[neighbourIndex].id,
+                        edge->edgeID,
+                        vertices[currentIndex].id,
+                        vertices[neighbourIndex].id,
+                        top,
+                        0,
+                        "DFS discovered and pushed vertex"
+                    ));
             }
         }
 
         delete[] neighbours;
+        delete[] neighbourEdges;
     }
 
     cout << endl;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            vertexCount, 0,
+            "DFS completed"
+        ));
 
     delete[] stack;
     delete[] visited;
 }
 
-int Graph::countConnectedComponents() const
+
+int Graph::countConnectedComponents(EventRecorder* recorder)
 {
     if (!hasOnlyUndirectedEdges())
     {
         cout << "Connected components require an undirected graph." << endl;
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1,
+                0, 0, "Connected components require an undirected graph"
+            ));
+
         return -1;
     }
 
@@ -548,11 +684,16 @@ int Graph::countConnectedComponents() const
     int* stack = new int[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
 
     int componentCount = 0;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            -1, -1, -1, -1,
+            0, 0, "Connected components started"
+        ));
 
     for (int i = 0; i < vertexCount; i++)
     {
@@ -560,14 +701,39 @@ int Graph::countConnectedComponents() const
         {
             componentCount++;
 
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::COMPONENT_STARTED,
+                    vertices[i].id, -1, -1, -1,
+                    componentCount, 0,
+                    "New connected component started"
+                ));
+
             int top = -1;
 
             stack[++top] = i;
             visited[i] = true;
 
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::VERTEX_DISCOVERED,
+                    vertices[i].id, -1, -1, -1,
+                    componentCount, 0,
+                    "First vertex in component discovered"
+                ));
+
             while (top >= 0)
             {
                 int currentIndex = stack[top--];
+
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::VERTEX_PROCESSED,
+                        vertices[currentIndex].id,
+                        -1, -1, -1,
+                        componentCount, 0,
+                        "Processing component vertex"
+                    ));
 
                 const EdgeNode* current = vertices[currentIndex].head;
 
@@ -575,10 +741,33 @@ int Graph::countConnectedComponents() const
                 {
                     int neighbourIndex = current->destinationIndex;
 
+                    if (recorder != nullptr)
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::EDGE_EXAMINED,
+                            vertices[neighbourIndex].id,
+                            current->edgeID,
+                            vertices[currentIndex].id,
+                            vertices[neighbourIndex].id,
+                            current->weight,
+                            visited[neighbourIndex] ? 1 : 0,
+                            "Examining component edge"
+                        ));
+
                     if (!visited[neighbourIndex])
                     {
                         visited[neighbourIndex] = true;
                         stack[++top] = neighbourIndex;
+
+                        if (recorder != nullptr)
+                            recorder->record(AlgorithmEvent(
+                                AlgorithmEvent::VERTEX_DISCOVERED,
+                                vertices[neighbourIndex].id,
+                                current->edgeID,
+                                vertices[currentIndex].id,
+                                vertices[neighbourIndex].id,
+                                componentCount, 0,
+                                "Vertex added to connected component"
+                            ));
                     }
 
                     current = current->next;
@@ -586,6 +775,14 @@ int Graph::countConnectedComponents() const
             }
         }
     }
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            componentCount, 0,
+            "Connected components completed"
+        ));
 
     delete[] stack;
     delete[] visited;
@@ -654,15 +851,40 @@ void Graph::displayConnectedComponents() const
     delete[] visited;
 }
 
-bool Graph::hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) const
+bool Graph::hasCycleDFS(
+    int currentIndex,
+    int parentEdgeID,
+    bool visited[],
+    EventRecorder* recorder) const
 {
     visited[currentIndex] = true;
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::VERTEX_DISCOVERED,
+            vertices[currentIndex].id,
+            -1, -1, -1,
+            0, 0,
+            "Cycle detection discovered vertex"
+        ));
 
     const EdgeNode* current = vertices[currentIndex].head;
 
     while (current != nullptr)
     {
         int neighbourIndex = current->destinationIndex;
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::EDGE_EXAMINED,
+                vertices[neighbourIndex].id,
+                current->edgeID,
+                vertices[currentIndex].id,
+                vertices[neighbourIndex].id,
+                current->weight,
+                0,
+                "Cycle detection examining edge"
+            ));
 
         if (current->edgeID == parentEdgeID)
         {
@@ -672,13 +894,28 @@ bool Graph::hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) cons
 
         if (!visited[neighbourIndex])
         {
-            if (hasCycleDFS(neighbourIndex, current->edgeID, visited))
+            if (hasCycleDFS(
+                neighbourIndex,
+                current->edgeID,
+                visited,
+                recorder))
             {
                 return true;
             }
         }
         else
         {
+            if (recorder != nullptr)
+                recorder->record(AlgorithmEvent(
+                    AlgorithmEvent::CYCLE_DETECTED,
+                    vertices[neighbourIndex].id,
+                    current->edgeID,
+                    vertices[currentIndex].id,
+                    vertices[neighbourIndex].id,
+                    0, 0,
+                    "Undirected cycle detected"
+                ));
+
             return true;
         }
 
@@ -688,32 +925,61 @@ bool Graph::hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) cons
     return false;
 }
 
-bool Graph::hasCycleUndirected() const
+bool Graph::hasCycleUndirected(EventRecorder* recorder) 
 {
     if (!hasOnlyUndirectedEdges())
     {
         cout << "Cycle detection requires an undirected graph." << endl;
+
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1,
+                0, 0, "Cycle detection requires an undirected graph"
+            ));
+
         return false;
     }
 
     bool* visited = new bool[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_STARTED,
+            -1, -1, -1, -1,
+            0, 0, "Undirected cycle detection started"
+        ));
 
     for (int i = 0; i < vertexCount; i++)
     {
         if (!visited[i])
         {
-            if (hasCycleDFS(i, -1, visited))
+            if (hasCycleDFS(i, -1, visited, recorder))
             {
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::ALGORITHM_COMPLETED,
+                        -1, -1, -1, -1,
+                        1, 0,
+                        "Cycle detection completed: cycle found"
+                    ));
+
                 delete[] visited;
                 return true;
             }
         }
     }
+
+    if (recorder != nullptr)
+        recorder->record(AlgorithmEvent(
+            AlgorithmEvent::ALGORITHM_COMPLETED,
+            -1, -1, -1, -1,
+            0, 0,
+            "Cycle detection completed: no cycle"
+        ));
 
     delete[] visited;
 

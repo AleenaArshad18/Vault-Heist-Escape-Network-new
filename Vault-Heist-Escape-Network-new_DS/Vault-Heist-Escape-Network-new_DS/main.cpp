@@ -67,6 +67,23 @@ int main()
     cout << endl;
     graph.DFS(0);
 
+    cout << endl << "========== BFS EVENT TEST ==========" << endl;
+
+    EventRecorder bfsEvents;
+
+    graph.BFS(0, &bfsEvents);
+
+    displayEvents(bfsEvents, "BFS");
+
+
+    cout << endl << "========== DFS EVENT TEST ==========" << endl;
+
+    EventRecorder dfsEvents;
+
+    graph.DFS(0, &dfsEvents);
+
+    displayEvents(dfsEvents, "DFS");
+
     cout << endl;
 
     Graph structureGraph(10, 20);
@@ -96,6 +113,19 @@ int main()
 
     structureGraph.displayConnectedComponents();
 
+    // CONNECTED COMPONENTS EVENT TEST
+
+    cout << endl << "========== CONNECTED COMPONENTS EVENT TEST ==========" << endl;
+
+    EventRecorder componentEvents;
+
+    int eventComponentCount =
+        structureGraph.countConnectedComponents(&componentEvents);
+
+    cout << "Component count: " << eventComponentCount << endl;
+
+    displayEvents(componentEvents, "CONNECTED COMPONENTS");
+
     cout << endl;
     cout << "Undirected Cycle Detection Test:" << endl;
 
@@ -108,7 +138,21 @@ int main()
         cout << "Graph does not contain a cycle." << endl;
     }
 
-    cout << endl;
+    // CYCLE DETECTION EVENT TEST
+
+    cout << endl << "========== CYCLE DETECTION EVENT TEST ==========" << endl;
+
+    EventRecorder cycleEvents;
+
+    bool eventCycleResult =
+        structureGraph.hasCycleUndirected(&cycleEvents);
+
+    cout << "Cycle found: "
+        << (eventCycleResult ? "Yes" : "No") << endl;
+
+    displayEvents(cycleEvents, "CYCLE DETECTION");
+
+
 
     graph.displayEdges();
 
@@ -989,14 +1033,16 @@ int main()
         cout << "Test failed!" << endl;
     }
 
-    MinHeap heap;
+    MinHeap heap(10);
 
-    heap.insert(0, 10);
-    heap.insert(1, 4);
-    heap.insert(2, 7);
-    heap.insert(3, 2);
+    heap.insert(10, 0);
+    heap.insert(4, 1);
+    heap.insert(7, 2);
+    heap.insert(2, 3);
 
-    MinHeapEntry result;
+    HeapNode result;
+
+    cout << endl << "MIN HEAP TEST:" << endl;
 
     while (heap.extractMin(result))
     {

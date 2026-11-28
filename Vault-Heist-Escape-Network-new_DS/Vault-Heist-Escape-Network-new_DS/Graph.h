@@ -4,6 +4,8 @@
 
 using namespace std;
 
+class EventRecorder;
+
 struct EdgeNode
 {
     int destinationIndex;
@@ -81,16 +83,23 @@ public:
     int getDegree(int vertexID) const;
     void getNeighbours(int vertexID, int neighbours[], int& count, int maxSize) const;
     void displayNeighbours(int vertexID) const;
-
-    void BFS(int startVertexID) const;
-    void DFS(int startVertexID) const;
-
-    int countConnectedComponents() const;
-
+    
     void displayConnectedComponents() const;
-    bool hasCycleUndirected() const;
-    bool hasCycleDFS(int currentIndex, int parentEdgeID, bool visited[]) const;
 
+    void BFS(int startVertexID, EventRecorder* recorder = nullptr) const;
+    void DFS(int startVertexID, EventRecorder* recorder = nullptr) const;
+
+    int countConnectedComponents(EventRecorder* recorder = nullptr);
+
+    bool hasCycleUndirected(EventRecorder* recorder = nullptr);
+
+    bool hasCycleDFS(
+        int currentIndex,
+        int parentEdgeID,
+        bool visited[],
+        EventRecorder* recorder
+    ) const;
+   
     void displayEdges() const;
     bool hasNegativeWeight() const;
     bool hasNonNegativeWeights() const;
