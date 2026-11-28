@@ -4,9 +4,7 @@
 
 using namespace std;
 
-void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID, int& timer,
-    bool visited[], int discovery[], int low[], Edge bridges[], int& bridgeCount,
-    bool articulationFlags[]) const
+void CriticalPoints::DFS(const Graph& graph, int currentIndex, int parentEdgeID, int& timer, bool visited[], int discovery[], int low[], Edge bridges[], int& bridgeCount, bool articulationFlags[]) const
 {
     visited[currentIndex] = true;
 
@@ -132,8 +130,7 @@ bool CriticalPoints::findCriticalPoints(const Graph& graph, Edge bridges[], int&
     {
         if (!visited[i])
         {
-            DFS(graph, i, -1, timer, visited, discovery, low,
-                bridges, bridgeCount, articulationFlags);
+            DFS(graph, i, -1, timer, visited, discovery, low,  bridges, bridgeCount, articulationFlags);
         }
     }
 

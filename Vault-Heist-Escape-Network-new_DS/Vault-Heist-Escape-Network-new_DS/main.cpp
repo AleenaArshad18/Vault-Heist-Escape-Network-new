@@ -25,11 +25,10 @@ int main()
 
     graph.display();
 
-    graph.display();
-
     graph.displayAdjacencyMatrix();
 
-    cout << "\nDegree of Vault: " << graph.getDegree(0) << endl;
+    cout << endl;
+    cout << "Degree of Vault: " << graph.getDegree(0) << endl;
 
     graph.displayNeighbours(0);
 
@@ -45,13 +44,37 @@ int main()
 
     cout << endl;
 
-    cout << "Number of Connected Components: "<< graph.countConnectedComponents() << endl;
+    Graph structureGraph(10, 20);
 
-    graph.displayConnectedComponents();
+    structureGraph.addVertex(0, "Vault", 100, 100);
+    structureGraph.addVertex(1, "Bank", 300, 100);
+    structureGraph.addVertex(2, "Airport", 500, 100);
+    structureGraph.addVertex(3, "Museum", 300, 300);
+    structureGraph.addVertex(4, "Hotel", 500, 300);
+
+    // First component: Vault, Bank, Airport form a cycle.
+
+    structureGraph.addEdge(0, 1, 5, 10, false);
+    structureGraph.addEdge(1, 2, 8, 10, false);
+    structureGraph.addEdge(2, 0, 4, 10, false);
+
+    // Second component: Museum and Hotel.
+
+    structureGraph.addEdge(3, 4, 6, 10, false);
 
     cout << endl;
+    cout << "Connected Components Test:" << endl;
 
-    if (graph.hasCycleUndirected())
+    int componentCount = structureGraph.countConnectedComponents();
+
+    cout << "Number of Connected Components: " << componentCount << endl;
+
+    structureGraph.displayConnectedComponents();
+
+    cout << endl;
+    cout << "Undirected Cycle Detection Test:" << endl;
+
+    if (structureGraph.hasCycleUndirected())
     {
         cout << "Graph contains a cycle." << endl;
     }
@@ -271,11 +294,6 @@ int main()
     bipartiteGraph.addVertex(2, "Airport", 500, 100);
     bipartiteGraph.addVertex(3, "Museum", 300, 300);
 
-    bipartiteGraph.addEdge(0, 1, 1, 10, false);
-    bipartiteGraph.addEdge(0, 3, 1, 10, false);
-    bipartiteGraph.addEdge(2, 1, 1, 10, false);
-    bipartiteGraph.addEdge(2, 3, 1, 10, false);
-
     Bipartite bipartite;
 
     int colours[10];
@@ -373,18 +391,45 @@ int main()
 
     EdmondsKarp edmondsKarp;
 
+
     int maxFlow;
     Edge minCutEdges[20];
     int minCutCount;
 
+    // Stores the final flow on each original edge.
+    int edgeFlows[20];
+
     bool flowSuccess = edmondsKarp.findMaxFlow(
-        flowGraph, 0, 5, maxFlow, minCutEdges, minCutCount
+        flowGraph,
+        0,
+        5,
+        maxFlow,
+        minCutEdges,
+        minCutCount,
+        edgeFlows
     );
 
     if (flowSuccess)
     {
         cout << endl;
         cout << "Maximum Flow: " << maxFlow << endl;
+
+        // Display flow on every original edge.
+
+        cout << endl;
+        cout << "Flow on Original Edges:" << endl;
+
+        for (int i = 0; i < flowGraph.getEdgeCount(); i++)
+        {
+            const Edge* edge = flowGraph.getEdgeAt(i);
+
+            cout << "Edge ID " << edge->id
+                << " (" << edge->fromID << " -> " << edge->toID << ")"
+                << ": " << edgeFlows[i]
+                << " / " << edge->capacity << endl;
+        }
+
+        // Display minimum cut edges.
 
         cout << endl;
         cout << "Minimum Cut Edges:" << endl;
@@ -393,8 +438,11 @@ int main()
 
         for (int i = 0; i < minCutCount; i++)
         {
-            cout << minCutEdges[i].fromID << " -> " << minCutEdges[i].toID;
-            cout << " Capacity: " << minCutEdges[i].capacity << endl;
+            cout << minCutEdges[i].fromID << " -> "
+                << minCutEdges[i].toID;
+
+            cout << " Capacity: "
+                << minCutEdges[i].capacity << endl;
 
             cutCapacity += minCutEdges[i].capacity;
         }
@@ -406,10 +454,331 @@ int main()
         cout << "Invalid graph or source/destination." << endl;
     }
 
+
+    
+
     bipartiteGraph.addEdge(0, 1, 1, 10, false);
     bipartiteGraph.addEdge(0, 3, 1, 10, false);
     bipartiteGraph.addEdge(2, 1, 1, 10, false);
     bipartiteGraph.addEdge(2, 3, 1, 10, false);
+
+
+    cout << endl;
+    cout << "========== PHASE 1: EDGE CASE TESTS ==========" << endl;
+
+    // TEST 1: Dijkstra with a negative edge.
+
+    cout << endl << "TEST 1: Dijkstra with negative weight" << endl;
+
+    Graph negativeDijkstraGraph(5, 10);
+
+    negativeDijkstraGraph.addVertex(0, "A", 100, 100);
+    negativeDijkstraGraph.addVertex(1, "B", 200, 100);
+    negativeDijkstraGraph.addEdge(0, 1, -5, 10, true);
+
+    int testDistances[10];
+    int testPrevious[10];
+
+    bool testDijkstra = dijkstra.findShortestPaths(
+        negativeDijkstraGraph, 0, testDistances, testPrevious
+    );
+
+    cout << "Expected: Rejected" << endl;
+    cout << "Actual: " << (testDijkstra ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 2: Dijkstra with an invalid starting vertex.
+
+    cout << endl << "TEST 2: Dijkstra with invalid start vertex" << endl;
+
+    bool invalidStart = dijkstra.findShortestPaths(
+        negativeDijkstraGraph, 99, testDistances, testPrevious
+    );
+
+    cout << "Expected: Rejected" << endl;
+    cout << "Actual: " << (invalidStart ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 3: Bellman-Ford with a reachable negative cycle.
+
+    cout << endl << "TEST 3: Bellman-Ford negative cycle" << endl;
+
+    Graph negativeCycleGraph(5, 10);
+
+    negativeCycleGraph.addVertex(0, "A", 100, 100);
+    negativeCycleGraph.addVertex(1, "B", 200, 100);
+    negativeCycleGraph.addVertex(2, "C", 300, 100);
+
+    negativeCycleGraph.addEdge(0, 1, 1, 10, true);
+    negativeCycleGraph.addEdge(1, 2, -2, 10, true);
+    negativeCycleGraph.addEdge(2, 0, 0, 10, true);
+
+    bool testBellmanFord = bellmanFord.findShortestPaths(
+        negativeCycleGraph, 0, bfDistances, bfPrevious
+    );
+
+    cout << "Expected: Rejected (negative cycle)" << endl;
+    cout << "Actual: " << (testBellmanFord ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 4: Kruskal with a disconnected graph.
+
+    cout << endl << "TEST 4: Kruskal with disconnected graph" << endl;
+
+    Graph disconnectedMSTGraph(5, 10);
+
+    disconnectedMSTGraph.addVertex(0, "A", 100, 100);
+    disconnectedMSTGraph.addVertex(1, "B", 200, 100);
+    disconnectedMSTGraph.addVertex(2, "C", 300, 100);
+    disconnectedMSTGraph.addVertex(3, "D", 400, 100);
+
+    disconnectedMSTGraph.addEdge(0, 1, 5, 10, false);
+    disconnectedMSTGraph.addEdge(2, 3, 7, 10, false);
+
+    Edge testMSTEdges[10];
+    int testMSTCount;
+    int testMSTWeight;
+
+    bool testKruskal = kruskal.findMST(
+        disconnectedMSTGraph, testMSTEdges, testMSTCount, testMSTWeight
+    );
+
+    cout << "Expected: Rejected (no complete MST)" << endl;
+    cout << "Actual: " << (testKruskal ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 5: Prim with a disconnected graph.
+
+    cout << endl << "TEST 5: Prim with disconnected graph" << endl;
+
+    bool testPrim = prim.findMST(
+        disconnectedMSTGraph, 0, testMSTEdges, testMSTCount, testMSTWeight
+    );
+
+    cout << "Expected: Rejected (no complete MST)" << endl;
+    cout << "Actual: " << (testPrim ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 6: Topological Sort with a directed cycle.
+
+    cout << endl << "TEST 6: Topological Sort with directed cycle" << endl;
+
+    Graph cyclicTopoGraph(5, 10);
+
+    cyclicTopoGraph.addVertex(0, "A", 100, 100);
+    cyclicTopoGraph.addVertex(1, "B", 200, 100);
+    cyclicTopoGraph.addVertex(2, "C", 300, 100);
+
+    cyclicTopoGraph.addEdge(0, 1, 1, 10, true);
+    cyclicTopoGraph.addEdge(1, 2, 1, 10, true);
+    cyclicTopoGraph.addEdge(2, 0, 1, 10, true);
+
+    int testOrdering[10];
+    int testOrderingCount;
+
+    bool testTopo = topo.kahnSort(
+        cyclicTopoGraph, testOrdering, testOrderingCount
+    );
+
+    cout << "Expected: Rejected (cycle)" << endl;
+    cout << "Actual: " << (testTopo ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 7: Bipartite checking with a triangle.
+
+    cout << endl << "TEST 7: Bipartite checking with triangle" << endl;
+
+    Graph triangleGraph(5, 10);
+
+    triangleGraph.addVertex(0, "A", 100, 100);
+    triangleGraph.addVertex(1, "B", 200, 100);
+    triangleGraph.addVertex(2, "C", 300, 100);
+
+    triangleGraph.addEdge(0, 1, 1, 10, false);
+    triangleGraph.addEdge(1, 2, 1, 10, false);
+    triangleGraph.addEdge(2, 0, 1, 10, false);
+
+    int testColours[10];
+
+    bool testBipartite = bipartite.checkBipartite(
+        triangleGraph, testColours
+    );
+
+    cout << "Expected: Not Bipartite" << endl;
+    cout << "Actual: " << (testBipartite ? "Bipartite" : "Not Bipartite") << endl;
+
+
+    // TEST 8: Critical Points with a directed edge.
+
+    cout << endl << "TEST 8: Critical Points with directed graph" << endl;
+
+    Graph directedCriticalGraph(5, 10);
+
+    directedCriticalGraph.addVertex(0, "A", 100, 100);
+    directedCriticalGraph.addVertex(1, "B", 200, 100);
+
+    directedCriticalGraph.addEdge(0, 1, 5, 10, true);
+
+    Edge testBridges[10];
+    int testBridgeCount;
+
+    int testArticulationPoints[10];
+    int testArticulationCount;
+
+    bool testCritical = criticalPoints.findCriticalPoints(
+        directedCriticalGraph,
+        testBridges, testBridgeCount,
+        testArticulationPoints, testArticulationCount
+    );
+
+    cout << "Expected: Rejected" << endl;
+    cout << "Actual: " << (testCritical ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 9: Edmonds-Karp with an undirected edge.
+
+    cout << endl << "TEST 9: Edmonds-Karp with undirected graph" << endl;
+
+    Graph undirectedFlowGraph(5, 10);
+
+    undirectedFlowGraph.addVertex(0, "Source", 100, 100);
+    undirectedFlowGraph.addVertex(1, "Sink", 200, 100);
+
+    undirectedFlowGraph.addEdge(0, 1, 0, 10, false);
+
+    int testMaxFlow;
+    Edge testCutEdges[10];
+    int testCutCount;
+
+    bool testFlow = edmondsKarp.findMaxFlow(
+        undirectedFlowGraph, 0, 1,
+        testMaxFlow, testCutEdges, testCutCount
+    );
+
+    cout << "Expected: Rejected" << endl;
+    cout << "Actual: " << (testFlow ? "Accepted" : "Rejected") << endl;
+
+
+    // TEST 10: Edmonds-Karp with disconnected source and sink.
+
+    cout << endl << "TEST 10: Edmonds-Karp with no connecting path" << endl;
+
+    Graph disconnectedFlowGraph(5, 10);
+
+    disconnectedFlowGraph.addVertex(0, "Source", 100, 100);
+    disconnectedFlowGraph.addVertex(1, "Middle", 200, 100);
+    disconnectedFlowGraph.addVertex(2, "Sink", 300, 100);
+
+    disconnectedFlowGraph.addEdge(0, 1, 0, 10, true);
+
+    bool noPathFlow = edmondsKarp.findMaxFlow(
+        disconnectedFlowGraph, 0, 2,
+        testMaxFlow, testCutEdges, testCutCount
+    );
+
+    cout << "Expected: Accepted with maximum flow 0" << endl;
+    cout << "Actual: "
+        << (noPathFlow ? "Accepted" : "Rejected")
+        << ", Maximum Flow: " << testMaxFlow << endl;
+
+    cout << endl << "========== EDGE CASE TESTS FINISHED ==========" << endl;
+
+
+    cout << endl;
+    cout << "TEST 11: Edmonds-Karp with Parallel Edges" << endl;
+
+    Graph parallelGraph(5, 10);
+
+    parallelGraph.addVertex(0, "Source", 100, 100);
+    parallelGraph.addVertex(1, "Middle", 300, 100);
+    parallelGraph.addVertex(2, "Sink", 500, 100);
+
+    parallelGraph.addEdge(0, 1, 0, 3, true);
+    parallelGraph.addEdge(0, 1, 0, 4, true);
+    parallelGraph.addEdge(1, 2, 0, 7, true);
+
+    EdmondsKarp parallelEK;
+
+    int parallelMaxFlow;
+    int parallelMinCutCount;
+    Edge parallelMinCutEdges[10];
+    int parallelEdgeFlows[10];
+
+    bool parallelSuccess = parallelEK.findMaxFlow(
+        parallelGraph, 0, 2,
+        parallelMaxFlow,
+        parallelMinCutEdges,
+        parallelMinCutCount,
+        parallelEdgeFlows
+    );
+
+    if (parallelSuccess)
+    {
+        cout << "Maximum Flow: " << parallelMaxFlow << endl;
+
+        for (int i = 0; i < parallelGraph.getEdgeCount(); i++)
+        {
+            const Edge* edge = parallelGraph.getEdgeAt(i);
+
+            cout << "Edge " << edge->id << ": "
+                << parallelEdgeFlows[i] << " / "
+                << edge->capacity << endl;
+        }
+
+        cout << "Expected Maximum Flow: 7" << endl;
+    }
+    else
+    {
+        cout << "Test failed!" << endl;
+    }
+
+    cout << endl;
+    cout << "TEST 12: Edmonds-Karp with Opposite-Direction Edges" << endl;
+
+    Graph oppositeGraph(5, 10);
+
+    oppositeGraph.addVertex(0, "Source", 100, 100);
+    oppositeGraph.addVertex(1, "Middle", 300, 100);
+    oppositeGraph.addVertex(2, "Sink", 500, 100);
+
+    oppositeGraph.addEdge(0, 1, 0, 5, true);
+    oppositeGraph.addEdge(1, 0, 0, 9, true);
+    oppositeGraph.addEdge(1, 2, 0, 5, true);
+
+    EdmondsKarp oppositeEK;
+
+    int oppositeMaxFlow;
+    int oppositeMinCutCount;
+    Edge oppositeMinCutEdges[10];
+    int oppositeEdgeFlows[10];
+
+    bool oppositeSuccess = oppositeEK.findMaxFlow(
+        oppositeGraph, 0, 2,
+        oppositeMaxFlow,
+        oppositeMinCutEdges,
+        oppositeMinCutCount,
+        oppositeEdgeFlows
+    );
+
+    if (oppositeSuccess)
+    {
+        cout << "Maximum Flow: " << oppositeMaxFlow << endl;
+
+        for (int i = 0; i < oppositeGraph.getEdgeCount(); i++)
+        {
+            const Edge* edge = oppositeGraph.getEdgeAt(i);
+
+            cout << "Edge " << edge->id << ": "
+                << oppositeEdgeFlows[i] << " / "
+                << edge->capacity << endl;
+        }
+
+        cout << "Expected Maximum Flow: 5" << endl;
+    }
+    else
+    {
+        cout << "Test failed!" << endl;
+    }
 
     return 0;
 }
