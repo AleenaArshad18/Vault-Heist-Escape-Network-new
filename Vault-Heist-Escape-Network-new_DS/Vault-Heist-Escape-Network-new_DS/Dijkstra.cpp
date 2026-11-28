@@ -1,5 +1,6 @@
 
 #include "Dijkstra.h"
+#include "MinHeap.h"
 #include "EventRecorder.h"
 #include <iostream>
 
@@ -29,13 +30,11 @@ bool Dijkstra::findShortestPaths(
         cout << "Starting vertex not found!" << endl;
 
         if (recorder != nullptr)
-        {
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::ALGORITHM_FAILED,
                 startVertexID, -1, -1, -1,
                 0, 0, "Starting vertex not found"
             ));
-        }
 
         return false;
     }
@@ -45,13 +44,11 @@ bool Dijkstra::findShortestPaths(
         cout << "Dijkstra cannot work with negative weights!" << endl;
 
         if (recorder != nullptr)
-        {
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::ALGORITHM_FAILED,
                 -1, -1, -1, -1,
                 0, 0, "Negative edge weight"
             ));
-        }
 
         return false;
     }
@@ -59,11 +56,12 @@ bool Dijkstra::findShortestPaths(
     bool* visited = new bool[vertexCount];
 
     for (int i = 0; i < vertexCount; i++)
-    {
         visited[i] = false;
-    }
+
+    MinHeap minHeap(vertexCount + graph.getEdgeCount() + 1);
 
     distances[startIndex] = 0;
+    minHeap.insert(0, startIndex);
 
     if (recorder != nullptr)
     {
@@ -80,27 +78,17 @@ bool Dijkstra::findShortestPaths(
         ));
     }
 
-    for (int count = 0; count < vertexCount; count++)
+    HeapNode currentNode;
+
+    while (minHeap.extractMin(currentNode))
     {
-        int minimumDistance = INF;
-        int currentIndex = -1;
+        int currentIndex = currentNode.vertexIndex;
 
-        // Find the unvisited vertex with the smallest distance.
-
-        for (int i = 0; i < vertexCount; i++)
+        // Ignore outdated heap entries.
+        if (visited[currentIndex] ||
+            currentNode.priority != distances[currentIndex])
         {
-            if (!visited[i] && distances[i] < minimumDistance)
-            {
-                minimumDistance = distances[i];
-                currentIndex = i;
-            }
-        }
-
-        // Stop if remaining vertices are unreachable.
-
-        if (currentIndex == -1)
-        {
-            break;
+            continue;
         }
 
         visited[currentIndex] = true;
@@ -124,8 +112,6 @@ bool Dijkstra::findShortestPaths(
                 "Processing vertex"
             ));
         }
-
-        // Explore adjacent vertices.
 
         const EdgeNode* current =
             graph.getAdjacencyHead(currentIndex);
@@ -151,44 +137,47 @@ bool Dijkstra::findShortestPaths(
                 ));
             }
 
-            if (!visited[neighbourIndex])
+            if (!visited[neighbourIndex] &&
+                current->weight <= INF - distances[currentIndex])
             {
-                if (current->weight <= INF - distances[currentIndex])
+                int newDistance =
+                    distances[currentIndex] + current->weight;
+
+                if (newDistance < distances[neighbourIndex])
                 {
-                    int newDistance =
-                        distances[currentIndex] + current->weight;
+                    int oldDistance = distances[neighbourIndex];
 
-                    if (newDistance < distances[neighbourIndex])
+                    distances[neighbourIndex] = newDistance;
+                    previous[neighbourIndex] = currentIndex;
+
+                    minHeap.insert(
+                        newDistance,
+                        neighbourIndex
+                    );
+
+                    if (recorder != nullptr)
                     {
-                        int oldDistance = distances[neighbourIndex];
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::VERTEX_DISCOVERED,
+                            neighbourVertex->id,
+                            current->edgeID,
+                            currentVertex->id,
+                            neighbourVertex->id,
+                            newDistance,
+                            oldDistance,
+                            "Vertex discovered"
+                        ));
 
-                        distances[neighbourIndex] = newDistance;
-                        previous[neighbourIndex] = currentIndex;
-
-                        if (recorder != nullptr)
-                        {
-                            recorder->record(AlgorithmEvent(
-                                AlgorithmEvent::VERTEX_DISCOVERED,
-                                neighbourVertex->id,
-                                current->edgeID,
-                                currentVertex->id,
-                                neighbourVertex->id,
-                                newDistance,
-                                oldDistance,
-                                "Vertex discovered"
-                            ));
-
-                            recorder->record(AlgorithmEvent(
-                                AlgorithmEvent::EDGE_RELAXED,
-                                neighbourVertex->id,
-                                current->edgeID,
-                                currentVertex->id,
-                                neighbourVertex->id,
-                                oldDistance,
-                                newDistance,
-                                "Distance updated"
-                            ));
-                        }
+                        recorder->record(AlgorithmEvent(
+                            AlgorithmEvent::EDGE_RELAXED,
+                            neighbourVertex->id,
+                            current->edgeID,
+                            currentVertex->id,
+                            neighbourVertex->id,
+                            oldDistance,
+                            newDistance,
+                            "Distance updated"
+                        ));
                     }
                 }
             }

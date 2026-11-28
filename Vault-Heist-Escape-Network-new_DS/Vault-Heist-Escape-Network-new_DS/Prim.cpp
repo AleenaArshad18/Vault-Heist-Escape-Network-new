@@ -1,4 +1,6 @@
+
 #include "Prim.h"
+#include "MinHeap.h"
 #include "EventRecorder.h"
 
 bool Prim::findMST(
@@ -18,8 +20,8 @@ bool Prim::findMST(
     if (recorder != nullptr)
         recorder->record(AlgorithmEvent(
             AlgorithmEvent::ALGORITHM_STARTED,
-            startVertexID, -1, -1, -1, 0, 0,
-            "Prim started"
+            startVertexID, -1, -1, -1,
+            0, 0, "Prim started"
         ));
 
     if (vertexCount == 0)
@@ -27,8 +29,8 @@ bool Prim::findMST(
         if (recorder != nullptr)
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::ALGORITHM_FAILED,
-                -1, -1, -1, -1, 0, 0,
-                "Prim failed: empty graph"
+                -1, -1, -1, -1,
+                0, 0, "Prim failed: empty graph"
             ));
 
         return false;
@@ -58,8 +60,8 @@ bool Prim::findMST(
         if (recorder != nullptr)
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::ALGORITHM_FAILED,
-                startVertexID, -1, -1, -1, 0, 0,
-                "Prim failed: starting vertex not found"
+                startVertexID, -1, -1, -1,
+                0, 0, "Prim failed: starting vertex not found"
             ));
 
         return false;
@@ -70,8 +72,8 @@ bool Prim::findMST(
         if (recorder != nullptr)
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::ALGORITHM_COMPLETED,
-                -1, -1, -1, -1, 0, 0,
-                "Prim completed"
+                -1, -1, -1, -1,
+                0, 0, "Prim completed"
             ));
 
         return true;
@@ -79,84 +81,63 @@ bool Prim::findMST(
 
     bool* visited = new bool[vertexCount];
 
-    const int INF = 1000000000;
-
     for (int i = 0; i < vertexCount; i++)
         visited[i] = false;
+
+    MinHeap minHeap(edgeCount + 1);
 
     visited[startIndex] = true;
 
     if (recorder != nullptr)
         recorder->record(AlgorithmEvent(
             AlgorithmEvent::VERTEX_DISCOVERED,
-            startVertexID, -1, -1, -1, 0, 0,
-            "Starting vertex discovered"
+            startVertexID, -1, -1, -1,
+            0, 0, "Starting vertex discovered"
         ));
 
-    while (mstCount < vertexCount - 1)
+    // Add all edges leaving the starting vertex.
+    const EdgeNode* current = graph.getAdjacencyHead(startIndex);
+
+    while (current != nullptr)
     {
-        int minimumWeight = INF;
+        int neighbour = current->destinationIndex;
 
-        int selectedFrom = -1;
-        int selectedTo = -1;
-        int selectedEdgeID = -1;
+        const Vertex* fromVertex = graph.getVertexAt(startIndex);
+        const Vertex* toVertex = graph.getVertexAt(neighbour);
 
-        for (int i = 0; i < vertexCount; i++)
-        {
-            if (visited[i])
-            {
-                const EdgeNode* current = graph.getAdjacencyHead(i);
+        minHeap.insert(
+            current->weight,
+            neighbour,
+            startIndex,
+            current->edgeID
+        );
 
-                while (current != nullptr)
-                {
-                    int neighbour = current->destinationIndex;
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::EDGE_EXAMINED,
+                toVertex->id,
+                current->edgeID,
+                fromVertex->id,
+                toVertex->id,
+                current->weight,
+                0,
+                "Examining edge"
+            ));
 
-                    if (!visited[neighbour])
-                    {
-                        if (recorder != nullptr)
-                        {
-                            const Vertex* fromVertex = graph.getVertexAt(i);
-                            const Vertex* toVertex = graph.getVertexAt(neighbour);
+        current = current->next;
+    }
 
-                            recorder->record(AlgorithmEvent(
-                                AlgorithmEvent::EDGE_EXAMINED,
-                                toVertex->id,
-                                current->edgeID,
-                                fromVertex->id,
-                                toVertex->id,
-                                current->weight,
-                                minimumWeight,
-                                "Examining edge"
-                            ));
-                        }
+    HeapNode selectedNode;
 
-                        if (current->weight < minimumWeight)
-                        {
-                            minimumWeight = current->weight;
-                            selectedFrom = i;
-                            selectedTo = neighbour;
-                            selectedEdgeID = current->edgeID;
-                        }
-                    }
+    while (mstCount < vertexCount - 1 &&
+        minHeap.extractMin(selectedNode))
+    {
+        int fromIndex = selectedNode.parentIndex;
+        int toIndex = selectedNode.vertexIndex;
 
-                    current = current->next;
-                }
-            }
-        }
-
-        if (selectedTo == -1)
-        {
-            delete[] visited;
-
-            if (recorder != nullptr)
-                recorder->record(AlgorithmEvent(
-                    AlgorithmEvent::ALGORITHM_FAILED,
-                    -1, -1, -1, -1, mstCount, vertexCount - 1,
-                    "Prim failed: graph is disconnected"
-                ));
-
-            return false;
-        }
+        // Ignore an edge if its destination is already in the MST.
+        if (visited[toIndex])
+            continue;
 
         const Edge* selectedEdge = nullptr;
 
@@ -164,7 +145,7 @@ bool Prim::findMST(
         {
             const Edge* edge = graph.getEdgeAt(i);
 
-            if (edge->id == selectedEdgeID)
+            if (edge->id == selectedNode.edgeID)
             {
                 selectedEdge = edge;
                 break;
@@ -174,36 +155,28 @@ bool Prim::findMST(
         if (selectedEdge == nullptr)
         {
             delete[] visited;
-
-            if (recorder != nullptr)
-                recorder->record(AlgorithmEvent(
-                    AlgorithmEvent::ALGORITHM_FAILED,
-                    -1, selectedEdgeID, -1, -1, 0, 0,
-                    "Prim failed: selected edge not found"
-                ));
-
             return false;
         }
 
         mstEdges[mstCount] = *selectedEdge;
 
         mstCount++;
-        totalWeight += minimumWeight;
+        totalWeight += selectedNode.priority;
 
-        visited[selectedTo] = true;
+        visited[toIndex] = true;
+
+        const Vertex* fromVertex = graph.getVertexAt(fromIndex);
+        const Vertex* toVertex = graph.getVertexAt(toIndex);
 
         if (recorder != nullptr)
         {
-            const Vertex* fromVertex = graph.getVertexAt(selectedFrom);
-            const Vertex* toVertex = graph.getVertexAt(selectedTo);
-
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::EDGE_SELECTED,
                 toVertex->id,
-                selectedEdgeID,
+                selectedNode.edgeID,
                 fromVertex->id,
                 toVertex->id,
-                minimumWeight,
+                selectedNode.priority,
                 totalWeight,
                 "Minimum edge selected for MST"
             ));
@@ -211,10 +184,10 @@ bool Prim::findMST(
             recorder->record(AlgorithmEvent(
                 AlgorithmEvent::VERTEX_DISCOVERED,
                 toVertex->id,
-                selectedEdgeID,
+                selectedNode.edgeID,
                 fromVertex->id,
                 toVertex->id,
-                minimumWeight,
+                selectedNode.priority,
                 0,
                 "New vertex added to MST"
             ));
@@ -228,14 +201,63 @@ bool Prim::findMST(
                 "Vertex processed"
             ));
         }
+
+        // Add edges from the newly selected vertex.
+        current = graph.getAdjacencyHead(toIndex);
+
+        while (current != nullptr)
+        {
+            int neighbour = current->destinationIndex;
+
+            if (!visited[neighbour])
+            {
+                const Vertex* neighbourVertex =
+                    graph.getVertexAt(neighbour);
+
+                minHeap.insert(
+                    current->weight,
+                    neighbour,
+                    toIndex,
+                    current->edgeID
+                );
+
+                if (recorder != nullptr)
+                    recorder->record(AlgorithmEvent(
+                        AlgorithmEvent::EDGE_EXAMINED,
+                        neighbourVertex->id,
+                        current->edgeID,
+                        toVertex->id,
+                        neighbourVertex->id,
+                        current->weight,
+                        0,
+                        "Examining edge"
+                    ));
+            }
+
+            current = current->next;
+        }
     }
 
     delete[] visited;
 
+    if (mstCount != vertexCount - 1)
+    {
+        if (recorder != nullptr)
+            recorder->record(AlgorithmEvent(
+                AlgorithmEvent::ALGORITHM_FAILED,
+                -1, -1, -1, -1,
+                mstCount, vertexCount - 1,
+                "Prim failed: graph is disconnected"
+            ));
+
+        return false;
+    }
+
     if (recorder != nullptr)
         recorder->record(AlgorithmEvent(
             AlgorithmEvent::ALGORITHM_COMPLETED,
-            -1, -1, -1, -1, totalWeight, mstCount,
+            -1, -1, -1, -1,
+            totalWeight, mstCount,
             "Prim completed"
         ));
 

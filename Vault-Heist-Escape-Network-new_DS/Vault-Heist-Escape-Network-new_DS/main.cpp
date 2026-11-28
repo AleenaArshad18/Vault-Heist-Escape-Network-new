@@ -10,6 +10,7 @@
 #include "EdmondsKarp.h"
 #include "EventRecorder.h"
 #include "AlgorithmEvent.h"
+#include "MinHeap.h"
 
 using namespace std;
 
@@ -986,6 +987,21 @@ int main()
     else
     {
         cout << "Test failed!" << endl;
+    }
+
+    MinHeap heap;
+
+    heap.insert(0, 10);
+    heap.insert(1, 4);
+    heap.insert(2, 7);
+    heap.insert(3, 2);
+
+    MinHeapEntry result;
+
+    while (heap.extractMin(result))
+    {
+        cout << result.vertexIndex
+            << " Priority: " << result.priority << endl;
     }
 
     return 0;

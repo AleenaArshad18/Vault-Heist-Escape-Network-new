@@ -155,6 +155,7 @@
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="Kruskal.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MinHeap.cpp" />
     <ClCompile Include="Prim.cpp" />
     <ClCompile Include="TopologicalSort.cpp" />
     <ClCompile Include="UnionFind.cpp" />
@@ -169,6 +170,7 @@
     <ClInclude Include="EventRecorder.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="Kruskal.h" />
+    <ClInclude Include="MinHeap.h" />
     <ClInclude Include="Prim.h" />
     <ClInclude Include="TopologicalSort.h" />
     <ClInclude Include="UnionFind.h" />
