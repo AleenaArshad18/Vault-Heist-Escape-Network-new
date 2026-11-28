@@ -139,18 +139,8 @@ bool Prim::findMST(
         if (visited[toIndex])
             continue;
 
-        const Edge* selectedEdge = nullptr;
-
-        for (int i = 0; i < edgeCount; i++)
-        {
-            const Edge* edge = graph.getEdgeAt(i);
-
-            if (edge->id == selectedNode.edgeID)
-            {
-                selectedEdge = edge;
-                break;
-            }
-        }
+        // Edge IDs are assigned sequentially by Graph, so use direct lookup.
+        const Edge* selectedEdge = graph.getEdgeAt(selectedNode.edgeID);
 
         if (selectedEdge == nullptr)
         {
