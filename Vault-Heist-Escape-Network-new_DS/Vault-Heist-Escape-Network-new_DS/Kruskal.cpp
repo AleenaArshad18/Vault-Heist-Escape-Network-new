@@ -94,19 +94,8 @@ bool Kruskal::findMST(
     while (mstCount < vertexCount - 1 &&
         minHeap.extractMin(currentNode))
     {
-        const Edge* currentEdge = nullptr;
-
-        // Find the original edge using its ID.
-        for (int i = 0; i < edgeCount; i++)
-        {
-            const Edge* edge = graph.getEdgeAt(i);
-
-            if (edge->id == currentNode.edgeID)
-            {
-                currentEdge = edge;
-                break;
-            }
-        }
+        // Edge IDs are assigned sequentially by Graph, so use direct lookup.
+        const Edge* currentEdge = graph.getEdgeAt(currentNode.edgeID);
 
         if (currentEdge == nullptr)
             continue;
