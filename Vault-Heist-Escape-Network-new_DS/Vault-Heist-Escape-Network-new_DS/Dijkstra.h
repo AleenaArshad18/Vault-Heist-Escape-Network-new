@@ -1,10 +1,9 @@
-
 #pragma once
-
 #include "Graph.h"
 
-class Dijkstra
-{
+class EventRecorder;
+
+class Dijkstra{
 public:
-    bool findShortestPaths(const Graph& graph, int startVertexID, int distances[], int previous[]) const;
+    bool findShortestPaths(const Graph& graph, int startVertexID, int distances[], int previous[], EventRecorder* recorder = nullptr) const;
 };

@@ -8,6 +8,7 @@
 #include "Bipartite.h"
 #include "CriticalPoints.h"
 #include "EdmondsKarp.h"
+#include "EventRecorder.h"
 
 using namespace std;
 
@@ -130,6 +131,43 @@ int main()
         }
     }
 
+    cout << endl;
+    cout << "DIJKSTRA EVENT TEST:" << endl;
+
+    EventRecorder dijkstraEvents;
+
+    int eventDistances[10];
+    int eventPrevious[10];
+
+    bool eventSuccess = dijkstra.findShortestPaths(
+        graph,
+        0,
+        eventDistances,
+        eventPrevious,
+        &dijkstraEvents
+    );
+
+    if (eventSuccess)
+    {
+        cout << "Dijkstra event count: "
+            << dijkstraEvents.getEventCount() << endl;
+
+        for (int i = 0; i < dijkstraEvents.getEventCount(); i++)
+        {
+            const AlgorithmEvent* event =
+                dijkstraEvents.getEventAt(i);
+
+            cout << "Event " << i
+                << " | Type: " << event->type
+                << " | Vertex: " << event->vertexID
+                << " | Edge: " << event->edgeID
+                << " | From: " << event->fromID
+                << " | To: " << event->toID
+                << " | Value: " << event->value
+                << " | Auxiliary: " << event->auxiliaryValue
+                << " | " << event->message << endl;
+        }
+    }
 
     Graph testGraph(10, 20);
 
@@ -171,6 +209,46 @@ int main()
             cout << endl;
         }
     }
+
+
+    cout << endl;
+    cout << "BELLMAN-FORD EVENT TEST:" << endl;
+
+    EventRecorder bellmanFordEvents;
+
+    int eventBFDistances[10];
+    int eventBFPrevious[10];
+
+    bool eventBFSuccess = bellmanFord.findShortestPaths(
+        testGraph,
+        0,
+        eventBFDistances,
+        eventBFPrevious,
+        &bellmanFordEvents
+    );
+
+    if (eventBFSuccess)
+    {
+        cout << "Bellman-Ford event count: "
+            << bellmanFordEvents.getEventCount() << endl;
+
+        for (int i = 0; i < bellmanFordEvents.getEventCount(); i++)
+        {
+            const AlgorithmEvent* event =
+                bellmanFordEvents.getEventAt(i);
+
+            cout << "Event " << i
+                << " | Type: " << event->type
+                << " | Vertex: " << event->vertexID
+                << " | Edge: " << event->edgeID
+                << " | From: " << event->fromID
+                << " | To: " << event->toID
+                << " | Value: " << event->value
+                << " | Auxiliary: " << event->auxiliaryValue
+                << " | " << event->message << endl;
+        }
+    }
+
 
     Graph mstGraph(10, 20);
 
@@ -293,6 +371,11 @@ int main()
     bipartiteGraph.addVertex(1, "Bank", 300, 100);
     bipartiteGraph.addVertex(2, "Airport", 500, 100);
     bipartiteGraph.addVertex(3, "Museum", 300, 300);
+
+    bipartiteGraph.addEdge(0, 1, 1, 10, false);
+    bipartiteGraph.addEdge(0, 3, 1, 10, false);
+    bipartiteGraph.addEdge(2, 1, 1, 10, false);
+    bipartiteGraph.addEdge(2, 3, 1, 10, false);
 
     Bipartite bipartite;
 
