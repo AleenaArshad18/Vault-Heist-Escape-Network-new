@@ -48,7 +48,7 @@ void LevelManager::initializeMissionInfo()
         "Navigate the Risky Network",
         "Bellman-Ford",
         "Find shortest distances from the Vault. This mission includes a negative edge but no reachable negative cycle.",
-        "Shortest distances from vertex 0: 0, 4, 2, 5.",
+        "Shortest distances from vertex 0: 0, 4, 2, 5, 8.",
         0
     };
 
@@ -57,7 +57,7 @@ void LevelManager::initializeMissionInfo()
         "Build the Cheapest Network",
         "Kruskal",
         "Connect every location using the minimum possible total edge weight.",
-        "A minimum spanning tree has 4 edges and total weight 19.",
+        "A minimum spanning tree has 4 edges and total weight 22.",
         0
     };
 
@@ -272,7 +272,6 @@ bool LevelManager::buildMissionGraph(int missionID)
         success = success && currentGraph->addEdge(0, 2, 4, 10, false);
         success = success && currentGraph->addEdge(1, 2, 7, 10, false);
         success = success && currentGraph->addEdge(1, 3, 3, 10, false);
-        success = success && currentGraph->addEdge(2, 3, 2, 10, false);
         success = success && currentGraph->addEdge(3, 4, 6, 10, false);
     }
     else if (missionID == 10)
