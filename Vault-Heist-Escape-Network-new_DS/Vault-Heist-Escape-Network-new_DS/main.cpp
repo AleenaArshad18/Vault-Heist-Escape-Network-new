@@ -11,6 +11,7 @@
 #include "EventRecorder.h"
 #include "AlgorithmEvent.h"
 #include "MinHeap.h"
+#include "LevelManager.h"
 
 using namespace std;
 
@@ -1125,6 +1126,65 @@ int main()
 
     cout << "Clear and reuse: "
         << ((clearWorked && reuseWorked) ? "PASSED" : "FAILED") << endl;
+
+
+    cout << endl << "========== LEVEL MANAGER TESTS ==========" << endl;
+
+    LevelManager levelManager;
+
+    cout << "Total missions: " << levelManager.getMissionCount() << endl;
+
+    bool allMissionsLoaded = true;
+
+    for (int missionID = 1; missionID <= levelManager.getMissionCount(); missionID++)
+    {
+        bool loaded = levelManager.loadMission(missionID);
+        const MissionInfo* missionInfo = levelManager.getMissionInfo(missionID);
+
+        if (!loaded || missionInfo == nullptr ||
+            levelManager.getCurrentGraph() == nullptr)
+        {
+            allMissionsLoaded = false;
+            cout << "Mission " << missionID << ": FAILED" << endl;
+        }
+        else
+        {
+            cout << "Mission " << missionID << ": "
+                << missionInfo->title
+                << " | Vertices: "
+                << levelManager.getCurrentGraph()->getVertexCount()
+                << " | Edges: "
+                << levelManager.getCurrentGraph()->getEdgeCount()
+                << " | PASSED" << endl;
+        }
+    }
+
+    cout << "All ten missions load: "
+        << (allMissionsLoaded ? "PASSED" : "FAILED") << endl;
+
+    bool invalidMissionRejected = !levelManager.loadMission(0) &&
+        !levelManager.loadMission(11);
+
+    cout << "Invalid mission IDs rejected: "
+        << (invalidMissionRejected ? "PASSED" : "FAILED") << endl;
+
+    bool restartWorked = levelManager.loadMission(3);
+
+    if (restartWorked)
+    {
+        int verticesBeforeRestart =
+            levelManager.getCurrentGraph()->getVertexCount();
+
+        levelManager.restartMission();
+
+        restartWorked = levelManager.isMissionLoaded() &&
+            levelManager.getCurrentMissionID() == 3 &&
+            levelManager.getCurrentGraph()->getVertexCount() ==
+                verticesBeforeRestart;
+    }
+
+    cout << "Mission restart: "
+        << (restartWorked ? "PASSED" : "FAILED") << endl;
 
     return 0;
 }
